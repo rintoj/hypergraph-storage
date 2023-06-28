@@ -1,12 +1,70 @@
 # hypergraph-storage
 
+- [hypergraph-storage](#hypergraph-storage)
+  - [Install](#install)
+  - [Usage](#usage)
+  - [Fetch Records](#fetch-records)
+    - [find](#find)
+    - [findById](#findbyid)
+    - [findByIds](#findbyids)
+    - [findAll](#findall)
+    - [findOne](#findone)
+  - [Query Builder](#query-builder)
+    - [Query](#query)
+    - [PaginatedQuery](#paginatedquery)
+  - [Insert \& Update](#insert--update)
+    - [save](#save)
+    - [saveMany](#savemany)
+    - [insert](#insert)
+    - [insertMany](#insertmany)
+    - [update](#update)
+    - [updateMany](#updatemany)
+  - [Count](#count)
+  - [Increment](#increment)
+  - [Delete \& Restore](#delete--restore)
+  - [Using Cache](#using-cache)
+  - [TypeORM DataSource](#typeorm-datasource)
+
 This is a package for accessing databases using TypeORM, that comes with the following benefits:
 
-- Build for TypeScript and typing support
+- Built for TypeScript and typing support
 - Works best with GraphQL especially libraries like [TypeGraphQL](https://typegraphql.com/)
-- Comes with easy to use [Query](./docs/query.md) builder with elegant and convenient syntax with
+- Comes with easy to use [Query](#query-builder) builder with elegant and convenient syntax with
   typing support
-- Supports pagination through [PaginatedQuery](./docs/query.md#paginatedquery) builder
+- Supports pagination through [PaginatedQuery](#paginatedquery) builder
+- Built on top of [TypeORM](https://typeorm.io/), hence comes with all the benefits that it
+  provides:
+  - Supports MySQL / MariaDB / Postgres / CockroachDB / SQLite / Microsoft SQL Server / Oracle / SAP
+    Hana / sql.js.
+  - Works in NodeJS / Browser / Ionic / Cordova / React Native / NativeScript / Expo / Electron
+    platforms.
+  - Entities and columns.
+  - Database-specific column types.
+  - Entity manager.
+  - Clean object relational model.
+  - Associations (relations).
+  - Eager and lazy relations.
+  - Uni-directional, bi-directional and self-referenced relations.
+  - Supports multiple inheritance patterns.
+  - Cascades.
+  - Indices.
+  - Transactions.
+  - Migrations and automatic migrations generation.
+  - Connection pooling.
+  - Replication.
+  - Using multiple database instances.
+  - Working with multiple databases types.
+  - Cross-database and cross-schema queries.
+  - Left and inner joins.
+  - Proper pagination for queries using joins.
+  - Query caching.
+  - Streaming raw results.
+  - Logging.
+  - Listeners and subscribers (hooks).
+  - Supports MongoDB NoSQL database.
+  - TypeScript and JavaScript support.
+  - ESM and CommonJS support.
+  - Produced code is performant, flexible, clean and maintainable.
 
 ## Install
 
@@ -93,80 +151,10 @@ import { container } from 'tsyringe'
 const userRepository = container.resolve(UserRepository)
 ```
 
-## Insert & Update
-
-You can insert and update records using the following methods:
-
-- [save](#save)
-- [saveMany](#savemany)
-- [insert](#insert)
-- [insertMany](#insertmany)
-- [update](#update)
-- [updateMany](#updatemany)
-
-### save
-
-This method will insert if the `id` (if provided) does not exist in the database, or will update the
-existing record.
-
-```ts
-const user = await userRepository.save({ id: 'user1', name: 'John Doe', username: 'johnd' })
-```
-
-### saveMany
-
-You can insert or update more than one record using in a step using `saveMany`. Just like `save` the
-record will inserted if `id` does not record.
-
-```ts
-const users = await userRepository.saveMany([
-  { id: 'user1', name: 'John Doe', username: 'johndoe' },
-  { id: 'user2', name: 'Mejia Henderso', username: 'mh' },
-])
-```
-
-### insert
-
-You can insert a record using `insert` method. "id" will be auto populated, if omitted.
-
-```ts
-const user = await userRepository.insert({ name: 'John Done', username: 'johndoe' })
-```
-
-### insertMany
-
-You can insert multiple users at once using `insertMany`.
-
-```ts
-const users = await userRepository.insertMany([
-  { name: 'John Doe', username: 'johndoe' },
-  { name: 'Mejia Henderso', username: 'mh' },
-])
-```
-
-### update
-
-Use this method to update a record, "id" is mandatory input.
-
-```ts
-const user = await userRepository.update({ id: 'user1', username: 'john' })
-```
-
-### updateMany
-
-You can update more than one record using a query using `updateMany`.
-
-```ts
-// update multiple records at once using a query
-const users = await userRepository.updateMany(query => query.whereEqualTo('username', 'johndoe'), {
-  verified: true,
-})
-```
-
-## Query
+## Fetch Records
 
 The repository class comes with `.find*` methods that you can use to query data using
-[`Query`](./docs/query.md):
+[`Query`](#query-builder) builder:
 
 - [find](#find)
 - [findById](#findbyid)
@@ -258,6 +246,172 @@ const user = await userRepository.findOne()
 const user = await userRepository.findOne(query => query.whereEqualTo('name', 'John Doe'))
 ```
 
+## Query Builder
+
+Query class provides an easy to use implementation for constructing complex SQL query. It allows you
+to build SQL queries using elegant and convenient syntax with typing support. Here is the
+[entity setup](./entities.md) for this example.
+
+### Query
+
+```ts
+import { Query } from 'hypergraph-storage'
+
+const repo = new UserRepository()
+const query = new Query(repo)
+
+  // select columns
+  .select('bio')
+  .select('id')
+  .select('email')
+
+  // where conditions
+  .whereEqualTo('id', 'id1')
+  .whereNotEqualTo('id', 'id1')
+
+  // numeric checks
+  .whereMoreThan('version', 1)
+  .whereMoreThanOrEqual('version', 1)
+  .whereLessThan('version', 1)
+  .whereLessThanOrEqual('version', 1)
+  .whereBetween('version', 1, 2)
+
+  // numeric "NOT" operators
+  .whereNotMoreThan('version', 1)
+  .whereNotMoreThanOrEqual('version', 1)
+  .whereNotLessThan('version', 0)
+  .whereNotLessThanOrEqual('version', 1)
+
+  // search
+  .whereTextContains('bio', 'true')
+  .whereTextStartsWith('bio', 'any')
+  .whereTextEndsWith('bio', 'any')
+
+  // case insensitive search
+  .whereTextInAnyCaseContains('bio', 'any')
+  .whereTextInAnyCaseStartsWith('bio', 'any')
+  .whereTextInAnyCaseEndsWith('bio', 'any')
+
+  // "IN" operator
+  .whereIn('role', [UserRole.ADMIN, UserRole.USER])
+
+  // null checks
+  .whereIsNull('name')
+  .whereIsNotNull('name')
+
+  // array operations
+  .whereArrayContains('tags', 'new')
+  .whereArrayContainsAny('tags', ['new', 'trending'])
+
+  // search on related tables
+  .whereJoin('photos', q => q.whereIsNotNull('url'))
+
+  // build "OR" condition
+  .whereOr(
+    query => query.whereEqualTo('id', '10'),
+    query => query.whereEqualTo('id', '10'),
+  )
+
+  // sort
+  .orderByAscending('version')
+  .orderByDescending('createdAt')
+
+  // fetch related entities
+  .fetchRelation('photos', 'album')
+  .loadRelationIds() // load only 'id', not required with `fetchRelation`
+
+  // enable or set timeout for `cache`
+  .cache(5000 ?? true)
+```
+
+### PaginatedQuery
+
+`PaginatedQuery`, in addition to the following, supports all the methods in `Query`.
+
+```ts
+import { PaginatedQuery } from 'hypergraph-storage'
+
+const repo = new UserRepository()
+const query = new PaginatedQuery(repo)
+
+  // use individual methods
+  .next('token')
+  .limit(10)
+
+  // or use this method
+  .pagination({ next: 'token', limit: 10 })
+```
+
+## Insert & Update
+
+You can insert and update records using the following methods:
+
+- [save](#save)
+- [saveMany](#savemany)
+- [insert](#insert)
+- [insertMany](#insertmany)
+- [update](#update)
+- [updateMany](#updatemany)
+
+### save
+
+This method will insert if the `id` (if provided) does not exist in the database, or will update the
+existing record.
+
+```ts
+const user = await userRepository.save({ id: 'user1', name: 'John Doe', username: 'johnd' })
+```
+
+### saveMany
+
+You can insert or update more than one record using in a step using `saveMany`. Just like `save` the
+record will inserted if `id` does not record.
+
+```ts
+const users = await userRepository.saveMany([
+  { id: 'user1', name: 'John Doe', username: 'johndoe' },
+  { id: 'user2', name: 'Mejia Henderso', username: 'mh' },
+])
+```
+
+### insert
+
+You can insert a record using `insert` method. "id" will be auto populated, if omitted.
+
+```ts
+const user = await userRepository.insert({ name: 'John Done', username: 'johndoe' })
+```
+
+### insertMany
+
+You can insert multiple users at once using `insertMany`.
+
+```ts
+const users = await userRepository.insertMany([
+  { name: 'John Doe', username: 'johndoe' },
+  { name: 'Mejia Henderso', username: 'mh' },
+])
+```
+
+### update
+
+Use this method to update a record, "id" is mandatory input.
+
+```ts
+const user = await userRepository.update({ id: 'user1', username: 'john' })
+```
+
+### updateMany
+
+You can update more than one record using a query using `updateMany`.
+
+```ts
+// update multiple records at once using a query
+const users = await userRepository.updateMany(query => query.whereEqualTo('username', 'johndoe'), {
+  verified: true,
+})
+```
+
 ## Count
 
 This method counts entities that match query (if provided) and returns a numeric value.
@@ -310,4 +464,63 @@ await userRepository.delete(query => query.whereEqualTo('verified', false), { so
 // restore a user if soft deleted
 await userRepository.restore('user1') // restore by id
 await userRepository.restore(query => query.whereEqualTo('verified', false)) // restore by query
+```
+
+## Using Cache
+
+Id cache is very important for the performance of queries especially when using it with GraphQL.
+Therefor Hypergraph uses officially recommended library
+[dataloader](https://github.com/graphql/dataloader) to gain performance via batching and caching.
+
+```ts
+import { RepositoryWithIdCache } from 'hypergraph-storage'
+
+class UserRepository extends RepositoryWithIdCache<User> {
+  constructor() {
+    super(User)
+  }
+}
+```
+
+Alternatively you can build your own cache-by-a-property using the following code.
+
+```ts
+import { Repository, RepositoryOptions, WithCache } from 'hypergraph-storage'
+import { ObjectLiteral } from 'typeorm'
+import { ClassType } from 'tsds-tools'
+
+@WithCache('name')
+class RepositoryWithNameCache<Entity extends ObjectLiteral> extends Repository<Entity> {
+  constructor(
+    public readonly entity: ClassType<Entity>,
+    public readonly options?: RepositoryOptions,
+  ) {
+    super(entity, options)
+  }
+}
+
+class UserRepository extends RepositoryWithNameCache<User> {
+  constructor() {
+    super(User)
+  }
+}
+```
+
+## TypeORM DataSource
+
+You can access TypeORM DataSource directly, to tap on to any TypeORM feature that is not covered by
+this library by using the following code:
+
+```ts
+import { container } from 'tsyringe'
+import { DataSource } from 'typeorm'
+
+async function run() {
+  await initializeMockDataSource({
+    type: 'postgres',
+    ...
+  })
+
+  const dataSource = container.resolve(DataSource)
+}
 ```
