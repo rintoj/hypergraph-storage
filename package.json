@@ -7,9 +7,7 @@
     "name": "Rinto Jose",
     "email": "rintoj@gmail.com"
   },
-  "repository": {
-    "url": "https://github.com/rintoj/hypergraph-storage"
-  },
+  "repository": "https://github.com/rintoj/hypergraph-storage.git",
   "scripts": {
     "test": "jest",
     "lint": "eslint --fix && tsc -p . --noEmit && yarn prettier",
