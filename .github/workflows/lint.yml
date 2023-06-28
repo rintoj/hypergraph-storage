@@ -1,17 +1,17 @@
-name: Release npm package
+name: Lint and test
 
 on: pull_request
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: lint-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: write
 
 jobs:
-  release:
-    name: Release
+  run-linters:
+    name: Lint and Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
