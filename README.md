@@ -24,6 +24,7 @@
   - [Delete \& Restore](#delete--restore)
   - [Using Cache](#using-cache)
   - [TypeORM DataSource](#typeorm-datasource)
+  - [Testing](#testing)
 
 This is a package for accessing databases using TypeORM, that comes with the following benefits:
 
@@ -123,13 +124,13 @@ class UserRepository extends Repository<User> {
 Initialize the data source
 
 ```ts
-await initializeMockDataSource({
+await initializeDataSource({
   type: 'postgres',
-  host: 'localhost', // "host.docker.internal", if you are using docker
+  host: 'localhost',
   port: 5432,
-  database: 'hypergraph', // your db name
-  username: 'postgres', // your db username
-  password: '********', // your db password
+  database: 'test',
+  username: 'postgres',
+  password: '',
   entities: [User],
   synchronize: true,
 })
@@ -512,15 +513,62 @@ You can access TypeORM DataSource directly, to tap on to any TypeORM feature tha
 this library by using the following code:
 
 ```ts
+import { initializeDataSource } from 'hypergraph-storage'
 import { container } from 'tsyringe'
 import { DataSource } from 'typeorm'
 
 async function run() {
-  await initializeMockDataSource({
+  await initializeDataSource({
     type: 'postgres',
     ...
   })
 
   const dataSource = container.resolve(DataSource)
 }
+```
+
+## Testing
+
+This package comes with an in-memory implementation of the database based on
+[pg-mem](https://github.com/oguimbal/pg-mem) to support testing. Use `initializeMockDataSource` to
+initialize in-memory database.
+
+```ts
+describe('Test suite', () => {
+  let dataSource: MockTypeORMDataSource
+
+  class UserRepository extends Repository<UserEntity> {
+    constructor() {
+      super(UserEntity)
+    }
+  }
+
+  class PhotoRepository extends Repository<PhotoEntity> {
+    constructor() {
+      super(PhotoEntity)
+    }
+  }
+
+  beforeEach(async () => {
+    dataSource = await initializeMockDataSource({
+      type: 'postgres',
+      database: 'test',
+      entities: [UserEntity, PhotoEntity],
+      synchronize: false,
+      retry: 0,
+    })
+    await container.resolve(UserRepository).saveMany(data.users as any)
+    await container.resolve(PhotoRepository).saveMany(data.photos)
+  })
+
+  afterEach(async () => {
+    dataSource?.destroy()
+  })
+
+  test('should pass sanity test', async () => {
+    const repository = container.resolve(PhotoRepository)
+    const result = await repository.count()
+    expect(result).toEqual(data.photos.length)
+  })
+})
 ```

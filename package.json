@@ -1,7 +1,8 @@
 {
   "name": "hypergraph-storage",
   "version": "0.0.0-development",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "description": "TypeORM based repository implementation for accessing data storages",
   "author": {
     "name": "Rinto Jose",
