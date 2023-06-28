@@ -82,7 +82,7 @@ yarn add hypergraph-storage
 
 ## Usage
 
-Define entity class. See [this](./docs/entities.md) for more examples.
+Define entity class. See [this](docs/entities.md) for more examples.
 
 ```ts
 import { Repository } from 'hypergraph-storage'
@@ -250,7 +250,7 @@ const user = await userRepository.findOne(query => query.whereEqualTo('name', 'J
 
 Query class provides an easy to use implementation for constructing complex SQL query. It allows you
 to build SQL queries using elegant and convenient syntax with typing support. Here is the
-[entity setup](./entities.md) for this example.
+[entity setup](docs/entities.md) for this example.
 
 ### Query
 
