@@ -15,7 +15,6 @@ jobs:
         with:
           node-version: '18.x'
       - run: yarn --pure-lockfile
-      - run: yarn add native-x-theme
       - run: yarn run build
       - run: yarn run semantic-release
         env:
