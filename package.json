@@ -80,8 +80,7 @@
   },
   "release": {
     "branches": [
-      "master",
-      "feat/release"
+      "master"
     ]
   }
 }
