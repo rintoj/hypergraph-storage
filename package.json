@@ -1,5 +1,5 @@
 {
-  "name": "hypergraph-storage",
+  "name": "@hgraph/storage",
   "version": "0.0.0-development",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

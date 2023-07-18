@@ -1,6 +1,6 @@
-# hypergraph-storage
+# Hypergraph Storage
 
-- [hypergraph-storage](#hypergraph-storage)
+- [Hypergraph Storage](#hypergraph-storage)
   - [Install](#install)
   - [Usage](#usage)
   - [Fetch Records](#fetch-records)
@@ -72,13 +72,13 @@ This is a package for accessing databases using TypeORM, that comes with the fol
 Using npm:
 
 ```sh
-npm install hypergraph-storage
+npm install @hgraph/storage
 ```
 
 Using yarn:
 
 ```sh
-yarn add hypergraph-storage
+yarn add @hgraph/storage
 ```
 
 ## Usage
@@ -86,7 +86,7 @@ yarn add hypergraph-storage
 Define entity class. See [this](docs/entities.md) for more examples.
 
 ```ts
-import { Repository } from 'hypergraph-storage'
+import { Repository } from '@hgraph/storage'
 import { Column, PrimaryColumn } from 'typeorm'
 
 @Entity()
@@ -256,7 +256,7 @@ to build SQL queries using elegant and convenient syntax with typing support. He
 ### Query
 
 ```ts
-import { Query } from 'hypergraph-storage'
+import { Query } from '@hgraph/storage'
 
 const repo = new UserRepository()
 const query = new Query(repo)
@@ -330,7 +330,7 @@ const query = new Query(repo)
 `PaginatedQuery`, in addition to the following, supports all the methods in `Query`.
 
 ```ts
-import { PaginatedQuery } from 'hypergraph-storage'
+import { PaginatedQuery } from '@hgraph/storage'
 
 const repo = new UserRepository()
 const query = new PaginatedQuery(repo)
@@ -474,7 +474,7 @@ Therefor Hypergraph uses officially recommended library
 [dataloader](https://github.com/graphql/dataloader) to gain performance via batching and caching.
 
 ```ts
-import { RepositoryWithIdCache } from 'hypergraph-storage'
+import { RepositoryWithIdCache } from '@hgraph/storage'
 
 class UserRepository extends RepositoryWithIdCache<User> {
   constructor() {
@@ -486,7 +486,7 @@ class UserRepository extends RepositoryWithIdCache<User> {
 Alternatively you can build your own cache-by-a-property using the following code.
 
 ```ts
-import { Repository, RepositoryOptions, WithCache } from 'hypergraph-storage'
+import { Repository, RepositoryOptions, WithCache } from '@hgraph/storage'
 import { ObjectLiteral } from 'typeorm'
 import { ClassType } from 'tsds-tools'
 
@@ -513,7 +513,7 @@ You can access TypeORM DataSource directly, to tap on to any TypeORM feature tha
 this library by using the following code:
 
 ```ts
-import { initializeDataSource } from 'hypergraph-storage'
+import { initializeDataSource } from '@hgraph/storage'
 import { container } from 'tsyringe'
 import { DataSource } from 'typeorm'
 
