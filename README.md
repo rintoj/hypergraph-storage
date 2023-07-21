@@ -139,14 +139,13 @@ await initializeDataSource({
 Or you can use environment variables
 
 ```sh
-dbType: postgres
-dbHost: localhost
-dbPort: "5432"
-dbName: test
-dbUser: postgres
-dbPassword:
-dbSynchronize: "true"
-dbAuthMethod: trust
+DB_TYPE: postgres
+DB_HOST: localhost
+DB_PORT: "5432"
+DB_NAME: test
+DB_USER: postgres
+DB_PASSWORD:
+DB_SYNCHRONIZE: "true"
 ```
 
 and then initialize
