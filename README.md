@@ -151,7 +151,16 @@ DB_SYNCHRONIZE: "true"
 and then initialize
 
 ```ts
-await initializeDataSource()
+await initializeDataSource({
+  entities: [User],
+})
+
+// or use
+
+await initializeDataSource({
+  entities: [`${__dirname}/**/*-entity.{ts,js}`],
+})
+await
 ```
 
 Get instance of the user repository.
