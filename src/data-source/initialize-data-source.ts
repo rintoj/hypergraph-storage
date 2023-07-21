@@ -2,33 +2,36 @@ import { container } from 'tsyringe'
 import { DataSource, DataSourceOptions } from 'typeorm'
 import { RepositorySubscriber } from '../repository/repository-subscriber'
 import { withRetry } from './with-retry'
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 
 const DEFAULT_RETRY = 100
 const DEFAULT_WAIT_IN_MS = 5 * 1000
 
 const {
-  POSTGRES_HOST = 'localhost',
-  POSTGRES_PORT = '5432',
-  POSTGRES_DB = 'hypergraphlocal',
-  POSTGRES_USER = 'postgres',
-  POSTGRES_PASSWORD,
+  dbType = 'postgres',
+  dbHost = 'localhost',
+  dbPort = '5432',
+  dbName = 'hypergraphlocal',
+  dbUser = 'postgres',
+  dbPassword,
+  dbSynchronize = 'true',
 } = process.env
 
-export type InitializeDataSourceOptions = Partial<DataSourceOptions> & {
+export type InitializeDataSourceOptions = Partial<PostgresConnectionOptions> & {
   retry?: number
   waitInMs?: number
 }
 
-export async function initializeDataSource(options: InitializeDataSourceOptions) {
+export async function initializeDataSource(options: InitializeDataSourceOptions = {}) {
   const dataSourceOptions: DataSourceOptions = {
-    type: 'postgres' as const,
-    ...(POSTGRES_HOST ? { host: POSTGRES_HOST } : {}),
-    ...(POSTGRES_PORT ? { port: parseInt(POSTGRES_PORT) } : {}),
-    ...(POSTGRES_DB ? { database: POSTGRES_DB } : {}),
-    ...(POSTGRES_USER ? { username: POSTGRES_USER } : {}),
-    ...(POSTGRES_PASSWORD ? { password: POSTGRES_PASSWORD } : {}),
-    synchronize: true,
-    subscribers: [RepositorySubscriber],
+    type: (options.type ?? dbType) as 'postgres',
+    host: options.host ?? dbHost,
+    port: options.port ?? parseInt(dbPort),
+    database: options.database ?? dbName,
+    username: options.username ?? dbUser,
+    password: options.password ?? dbPassword,
+    synchronize: options.synchronize ?? dbSynchronize === 'true',
+    subscribers: [RepositorySubscriber, ...(options.subscribers ?? ([] as any))],
     ...((options as any) ?? {}),
   }
   const dataSource = new DataSource(dataSourceOptions)

@@ -136,6 +136,25 @@ await initializeDataSource({
 })
 ```
 
+Or you can use environment variables
+
+```sh
+dbType: postgres
+dbHost: localhost
+dbPort: "5432"
+dbName: test
+dbUser: postgres
+dbPassword:
+dbSynchronize: "true"
+dbAuthMethod: trust
+```
+
+and then initialize
+
+```ts
+await initializeDataSource()
+```
+
 Get instance of the user repository.
 
 ```ts
