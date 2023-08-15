@@ -21,6 +21,8 @@
   "dependencies": {
     "class-validator": "^0.14.0",
     "dataloader": "^2.2.2",
+    "firebase-admin": "^11.10.1",
+    "lodash": "^4.17.21",
     "name-util": "^1.3.0",
     "nanoid": "3.1.23",
     "pg": "^8.8.0",
@@ -33,6 +35,7 @@
     "@faker-js/faker": "^7.6.0",
     "@types/fs-extra": "^11.0.1",
     "@types/jest": "^29.0.1",
+    "@types/lodash": "^4.14.197",
     "@types/node": "^18.7.16",
     "@typescript-eslint/eslint-plugin": "^5.36.2",
     "@typescript-eslint/parser": "^5.36.2",
@@ -48,6 +51,9 @@
     "rimraf": "^5.0.1",
     "semantic-release": "^21.0.5",
     "ts-jest": "^29.0.0"
+  },
+  "peerDependencies": {
+    "firebase-admin": "^11.10.1"
   },
   "jest": {
     "testPathIgnorePatterns": [
