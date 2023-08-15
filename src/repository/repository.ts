@@ -55,7 +55,9 @@ export class Repository<Entity extends ObjectLiteral> {
     return ids.map(id => itemsById[id] ?? null)
   }
 
-  findOne(queryOrCallback?: Query<Entity> | ((query: Query<Entity>) => Query<Entity>)) {
+  findOne(
+    queryOrCallback?: Query<Entity> | ((query: Query<Entity>) => Query<Entity>),
+  ): Promise<Entity | null> {
     const query =
       typeof queryOrCallback === 'function' ? queryOrCallback(new Query(this)) : queryOrCallback
     return this.repository.findOne(

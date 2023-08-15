@@ -1,8 +1,8 @@
 import { faker } from '@faker-js/faker'
 import { randomUUID } from 'crypto'
 import { writeFile } from 'fs-extra'
-import { BaseEntity } from '../../base-entity'
-import { AlbumEntity, PhotoEntity, UserEntity, UserRole } from '../../entity'
+import { BaseEntity } from '../base-entity'
+import { AlbumEntity, PhotoEntity, UserEntity, UserRole } from '../entity'
 
 function randomFromArray(array: any[], isNullable?: boolean) {
   return array[

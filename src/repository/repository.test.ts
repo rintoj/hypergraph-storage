@@ -9,7 +9,7 @@ import { UserProfileEntity } from '../entity/user-profile-entity'
 import { Query } from '../query'
 import { PaginatedQuery } from '../query/query'
 import { MockTypeORMDataSource, initializeMockDataSource } from '../typeorm-mock'
-import data from './test/data.json'
+import data from '../test/data.json'
 
 function omit<T extends Record<any, any>>(
   target: T | null | undefined,
