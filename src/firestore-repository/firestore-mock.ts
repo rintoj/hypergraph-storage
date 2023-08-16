@@ -17,11 +17,8 @@ class MockArrayRemove<T> {
   }
 }
 
-class MockIncrement<T> {
-  public readonly values: T[] = []
-  constructor(...values: T[]) {
-    this.values = values
-  }
+class MockIncrement {
+  constructor(public readonly incrementBy: number = 1) {}
 }
 
 jest.mock('./firestore-initializer', () => {
@@ -75,10 +72,10 @@ function mergeValues<T extends RecordWithId>(currentItem: T | undefined = {} as 
             : value.values,
       } as T
     } else if (value instanceof MockIncrement) {
-      const [incrementBy] = value.values ?? []
       return {
         ...object,
-        [key]: typeof currentValue === 'number' ? currentValue + incrementBy : value.values,
+        [key]:
+          typeof currentValue === 'number' ? currentValue + value.incrementBy : value.incrementBy,
       } as T
     }
     return { ...object, [key]: value }
