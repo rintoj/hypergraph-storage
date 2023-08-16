@@ -28,6 +28,7 @@
   - [Using Cache](#using-cache)
   - [TypeORM DataSource](#typeorm-datasource)
   - [Testing](#testing)
+    - [Testing with firestore](#testing-with-firestore)
 
 This is a package for accessing databases using TypeORM, that comes with the following benefits:
 
@@ -767,7 +768,7 @@ This package comes with an in-memory implementation of the database based on
 initialize in-memory database.
 
 ```ts
-import { initializeMockDataSource } from '@hgraph/storage'
+import { initializeMockDataSource } from '@hgraph/storage/dist/typeorm-mock'
 
 describe('Test suite', () => {
   let dataSource: MockTypeORMDataSource
@@ -798,6 +799,67 @@ describe('Test suite', () => {
 
   afterEach(async () => {
     dataSource?.destroy()
+  })
+
+  test('should pass sanity test', async () => {
+    const repository = container.resolve(PhotoRepository)
+    const result = await repository.count()
+    expect(result).toEqual(data.photos.length)
+  })
+})
+```
+
+### Testing with firestore
+
+```ts
+import { initializeMockFirestore } from '@hgraph/storage/dist/firestore-repository/firestore-mock'
+
+describe('Test suite', () => {
+  let dataSource: MockTypeORMDataSource
+
+  class UserRepository extends Repository<UserEntity> {
+    constructor() {
+      super(UserEntity)
+    }
+  }
+
+  class PhotoRepository extends Repository<PhotoEntity> {
+    constructor() {
+      super(PhotoEntity)
+    }
+  }
+
+  async function saveAll() {
+    await Promise.all([
+      container.resolve(UserRepository).saveMany(data.users as any),
+      container.resolve(PhotoRepository).saveMany(data.photos),
+    ])
+  }
+
+  async function deleteAll() {
+    await Promise.all([
+      container.resolve(UserRepository).delete(query => query),
+      container.resolve(PhotoRepository).delete(query => query),
+    ])
+  }
+
+  beforeAll(async () => {
+    // OPTION 1: RUN WITH EMULATOR
+    // const firestore = admin.initializeApp({ projectId: 'test-e9d5b' }).firestore()
+    // firestore.settings({ host: 'localhost:8080', ssl: false })
+    // container.registerInstance(FIRESTORE_INSTANCE, firestore)
+
+    // OPTION 2: RUN WITH MOCK
+    initializeMockFirestore()
+  })
+
+  beforeEach(async () => {
+    await deleteAll()
+    await saveAll()
+  })
+
+  afterAll(async () => {
+    await deleteAll()
   })
 
   test('should pass sanity test', async () => {
