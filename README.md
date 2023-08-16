@@ -22,6 +22,9 @@
   - [Count](#count)
   - [Increment](#increment)
   - [Delete \& Restore](#delete--restore)
+  - [Using with Cloud Firestore](#using-with-cloud-firestore)
+    - [Queries](#queries)
+    - [Modification API](#modification-api)
   - [Using Cache](#using-cache)
   - [TypeORM DataSource](#typeorm-datasource)
   - [Testing](#testing)
@@ -494,6 +497,167 @@ await userRepository.restore('user1') // restore by id
 await userRepository.restore(query => query.whereEqualTo('verified', false)) // restore by query
 ```
 
+## Using with Cloud Firestore
+
+This library comes with support for [firestore](https://firebase.google.com/docs/firestore), however
+you will have to initialize the datasource and repositories as show below. Most of the APIs are
+compatible with each other.
+
+```ts
+import { initializeFirestore, FirestoreRepository } from '@hgraph/storage'
+
+await initializeFirestore({
+  serviceAccountConfig: 'string', // path to the file where service account config (JSON) is placed
+})
+
+// and create repositories from
+export class UserRepository extends FirestoreRepository<UserEntity> {
+  constructor() {
+    super(UserEntity)
+  }
+}
+```
+
+### Queries
+
+The following apis are supported
+
+```ts
+import { Query } from '@hgraph/storage'
+
+const repo = new UserRepository()
+const query = new Query(repo)
+
+  // select columns
+  .select('bio')
+  .select('id')
+  .select('email')
+
+  // where conditions
+  .whereEqualTo('id', 'id1')
+  .whereNotEqualTo('id', 'id1')
+
+  // numeric checks
+  .whereMoreThan('version', 1)
+  .whereMoreThanOrEqual('version', 1)
+  .whereLessThan('version', 1)
+  .whereLessThanOrEqual('version', 1)
+  .whereBetween('version', 1, 2)
+
+  // numeric "NOT" operators
+  .whereNotMoreThan('version', 1)
+  .whereNotMoreThanOrEqual('version', 1)
+  .whereNotLessThan('version', 0)
+  .whereNotLessThanOrEqual('version', 1)
+
+  // search
+  // .whereTextContains('bio', 'true')                    // NOT SUPPORTED
+  .whereTextStartsWith('bio', 'any')
+  // .whereTextEndsWith('bio', 'any')                     // NOT SUPPORTED
+
+  // case insensitive search
+  // .whereTextInAnyCaseContains('bio', 'any')            // NOT SUPPORTED
+  // .whereTextInAnyCaseStartsWith('bio', 'any')          // NOT SUPPORTED
+  // .whereTextInAnyCaseEndsWith('bio', 'any')            // NOT SUPPORTED
+
+  // "IN" operator
+  .whereIn('role', [UserRole.ADMIN, UserRole.USER])
+
+  // null checks
+  .whereIsNull('name')
+  .whereIsNotNull('name')
+
+  // array operations
+  .whereArrayContains('tags', 'new')
+  .whereArrayContainsAny('tags', ['new', 'trending'])
+
+  // search on related tables
+  // .whereJoin('photos', q => q.whereIsNotNull('url'))   // NOT SUPPORTED YET
+
+  // build "OR" condition
+  .whereOr(
+    query => query.whereEqualTo('id', '10'),
+    query => query.whereEqualTo('id', '10'),
+  )
+
+  // sort
+  .orderByAscending('version')
+  .orderByDescending('createdAt')
+
+  // fetch related entities
+  // .fetchRelation('photos', 'album')                 // NOT SUPPORTED YET
+  .loadRelationIds()
+
+  // enable or set timeout for `cache`
+  .cache(5000 ?? true) // NOT EFFECT
+```
+
+### Modification API
+
+```ts
+// save a user
+const user = await userRepository.save({ id: 'user1', name: 'John Doe', username: 'johnd' })
+
+// save multiple users
+const users = await userRepository.saveMany([
+  { id: 'user1', name: 'John Doe', username: 'johndoe' },
+  { id: 'user2', name: 'Mejia Henderso', username: 'mh' },
+])
+
+// update a user
+const user = await userRepository.update({ id: 'user1', username: 'john' })
+
+// update multiple records at once using a query
+const users = await userRepository.updateMany(query => query.whereEqualTo('username', 'johndoe'), {
+  verified: true,
+})
+
+// count all users
+const count = await userRepository.count()
+
+// count all users with a query
+const count = await userRepository.count(query => query.whereEqualTo('name', 'John Doe'))
+
+// increment by id
+const user = await userRepository.increment('user1', 'followers', 1)
+
+// decrement by id
+const user = await userRepository.increment('user1', 'followers', -1)
+
+// increment by query
+const user = await userRepository.increment(
+  query => query.whereEqualTo('name', 'John Doe'),
+  'followers',
+  1,
+)
+
+// safest way to add an entity to an array "following" is as below
+const user = await userRepository.addToArray('following', {
+  id: 'user2',
+  name: 'Mejia Henderso',
+  username: 'mh',
+})
+
+// safest way to remove an entity from an array "following" is as below
+const user = await userRepository.removeFromArray('following', {
+  id: 'user2',
+  name: 'Mejia Henderso',
+  username: 'mh',
+})
+
+// delete a user
+await userRepository.delete('user1') // delete by id
+await userRepository.delete(query => query.whereEqualTo('verified', false)) // delete by query
+
+// soft delete a user - NOT SUPPORTED
+// await userRepository.delete('user1', { softDelete: true }) // soft delete by id
+// await userRepository.delete(query => query.whereEqualTo('verified', false), { softDelete: true }) // soft delete by query
+
+// restore a user if soft deleted - NOT SUPPORTED YET
+// await userRepository.restore('user1') // restore by id
+// await userRepository.restore(query => query.whereEqualTo('verified', false)) // restore by query
+```
+
 ## Using Cache
 
 Id cache is very important for the performance of queries especially when using it with GraphQL.
@@ -561,6 +725,8 @@ This package comes with an in-memory implementation of the database based on
 initialize in-memory database.
 
 ```ts
+import { initializeMockDataSource } from '@hgraph/storage'
+
 describe('Test suite', () => {
   let dataSource: MockTypeORMDataSource
 

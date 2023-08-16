@@ -36,7 +36,7 @@ export interface FirestoreRepositoryOptions extends RepositoryOptions {
   softDelete?: never
 }
 type UpdatableEntity<T> = Partial<T> & { id: string }
-type IdsOrQuery<Entity extends ObjectLiteral> =
+export type IdsOrFirestoreQuery<Entity extends ObjectLiteral> =
   | string
   | string[]
   | FirestorePaginatedQuery<Entity>
@@ -148,7 +148,7 @@ export class FirestoreRepository<Entity extends ObjectLiteral> {
     })
   }
 
-  protected async idOrQueryToEntities(query: IdsOrQuery<Entity>) {
+  protected async idOrQueryToEntities(query: IdsOrFirestoreQuery<Entity>) {
     return toNonNullArray(
       typeof query === 'string'
         ? [await this.findById(query)]
@@ -301,7 +301,10 @@ export class FirestoreRepository<Entity extends ObjectLiteral> {
     return { ...existingRecord, ...record }
   }
 
-  async updateMany(query: IdsOrQuery<Entity>, entity: DeepPartial<Entity>): Promise<Entity[]> {
+  async updateMany(
+    query: IdsOrFirestoreQuery<Entity>,
+    entity: DeepPartial<Entity>,
+  ): Promise<Entity[]> {
     let records: Entity[] = []
     const entities = await this.idOrQueryToEntities(query)
     for (const part of chunk(entities, 10)) {
@@ -312,7 +315,7 @@ export class FirestoreRepository<Entity extends ObjectLiteral> {
     return records
   }
 
-  async delete(query: IdsOrQuery<Entity>, options?: DeleteOptions): Promise<Entity[]> {
+  async delete(query: IdsOrFirestoreQuery<Entity>, options?: DeleteOptions): Promise<Entity[]> {
     const entities = await this.idOrQueryToEntities(query)
     if (options?.softDelete ?? this.options?.softDelete) {
       throw new Error('Soft delete is not implemented yet!')
@@ -324,7 +327,7 @@ export class FirestoreRepository<Entity extends ObjectLiteral> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async restore(query: IdsOrQuery<Entity>): Promise<Entity[]> {
+  async restore(query: IdsOrFirestoreQuery<Entity>): Promise<Entity[]> {
     throw new Error('Soft delete and restore options are not implemented yet!')
   }
 
@@ -350,7 +353,7 @@ export class FirestoreRepository<Entity extends ObjectLiteral> {
   }
 
   async increment<Key extends KeysOf<Entity, number>>(
-    query: IdsOrQuery<Entity>,
+    query: IdsOrFirestoreQuery<Entity>,
     key: Key,
     incrementBy = 1,
   ): Promise<Entity[]> {
