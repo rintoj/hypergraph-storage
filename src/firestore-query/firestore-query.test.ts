@@ -264,17 +264,18 @@ describe('FirestoreQuery', () => {
   })
 
   test('should call "where" firebase api with "or"', () => {
-    const where = jest.fn().mockImplementation(() => ({ where: () => null }))
+    const where = jest.fn()
     const repo: any = new MockRepository({ where })
     const query = new FirestoreQuery<MockEntity>(repo)
     query.whereOr(
       q => q.whereEqualTo('age', 10),
       q => q.whereEqualTo('email', 'test@test.com'),
     )
-    expect(where).toBeCalledWith('age', '==', 10)
-    expect(where).toBeCalledWith('email', '==', 'test@test.com')
     expect(where).toBeCalledWith({
-      filters: [{ where: expect.any(Function) }, { where: expect.any(Function) }],
+      filters: [
+        { field: 'age', operator: '==', value: 10 },
+        { field: 'email', operator: '==', value: 'test@test.com' },
+      ],
       operator: 'OR',
     })
   })
@@ -317,7 +318,11 @@ describe('FirestoreQuery', () => {
     const internalQuery = { where: jest.fn() }
     const repo: any = new MockRepository(internalQuery)
     const query = new FirestoreQuery<MockEntity>(repo)
-    expect(query.toQuery()).toEqual({ cache: 5000, queryRef: expect.any(Object) })
+    expect(query.toQuery()).toEqual({
+      filteredProps: expect.any(Set),
+      cache: 5000,
+      queryRef: expect.any(Object),
+    })
   })
 
   test('should call "limit" firebase api', () => {
