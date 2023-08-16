@@ -4,7 +4,7 @@ import {
   PrimaryColumn,
   UpdateDateColumn,
   VersionColumn,
-} from '../typeorm'
+} from 'typeorm'
 
 export abstract class BaseEntity {
   @PrimaryColumn()

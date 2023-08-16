@@ -86,7 +86,8 @@ yarn add @hgraph/storage
 Define entity class. See [this](docs/entities.md) for more examples.
 
 ```ts
-import { Column, PrimaryColumn, Repository } from '@hgraph/storage'
+import { Repository } from '@hgraph/storage'
+import { Column, PrimaryColumn } from 'typeorm'
 
 @Entity()
 class User {
@@ -512,7 +513,8 @@ class UserRepository extends RepositoryWithIdCache<User> {
 Alternatively you can build your own cache-by-a-property using the following code.
 
 ```ts
-import { ObjectLiteral, Repository, RepositoryOptions, WithCache } from '@hgraph/storage'
+import { Repository, RepositoryOptions, WithCache } from '@hgraph/storage'
+import { ObjectLiteral } from 'typeorm'
 import { ClassType } from 'tsds-tools'
 
 @WithCache('name')
@@ -538,8 +540,9 @@ You can access TypeORM DataSource directly, to tap on to any TypeORM feature tha
 this library by using the following code:
 
 ```ts
-import { DataSource, initializeDataSource } from '@hgraph/storage'
+import { initializeDataSource } from '@hgraph/storage'
 import { container } from 'tsyringe'
+import { DataSource } from 'typeorm'
 
 async function run() {
   await initializeDataSource({
