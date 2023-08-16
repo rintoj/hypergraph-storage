@@ -2,72 +2,68 @@ import 'reflect-metadata'
 
 import { faker } from '@faker-js/faker'
 import { randomUUID } from 'crypto'
-import * as admin from 'firebase-admin'
+import { omit } from 'lodash'
 import { container } from 'tsyringe'
 import { PhotoEntity, UserEntity, UserProfileEntity, UserRole } from '../entity'
 import { AlbumEntity } from '../entity/album-entity'
 import { FirestorePaginatedQuery, FirestoreQuery } from '../firestore-query'
 import data from '../test/data.json'
-import { FIRESTORE_INSTANCE } from './firestore-initializer'
+import { initializeMockFirestore } from './firestore-mock'
 import { FirestoreRepository } from './firestore-repository'
 
-function omit<T extends Record<any, any>>(
-  target: T | null | undefined,
-  ...properties: Array<keyof T>
-) {
-  if (!target) return target
-  return Object.keys(target)
-    .filter((key: any) => !properties.includes(key))
-    .reduce((a, i) => ({ ...a, [i]: target[i] }), {} as T)
-}
-
-class UserRepository extends FirestoreRepository<UserEntity> {
-  constructor() {
-    super(UserEntity)
-  }
-}
-
-class AlbumRepository extends FirestoreRepository<AlbumEntity> {
-  constructor() {
-    super(AlbumEntity)
-  }
-}
-
-class PhotoRepository extends FirestoreRepository<PhotoEntity> {
-  constructor() {
-    super(PhotoEntity)
-  }
-}
-
-class UserProfileRepository extends FirestoreRepository<UserProfileEntity> {
-  constructor() {
-    super(UserProfileEntity)
-  }
-}
-
-async function saveAll() {
-  await Promise.all([
-    container.resolve(UserRepository).saveMany(data.users as any),
-    container.resolve(AlbumRepository).saveMany(data.albums),
-    container.resolve(PhotoRepository).saveMany(data.photos),
-    container.resolve(UserProfileRepository).saveMany(data.users.map(user => user.profile as any)),
-  ])
-}
-
-async function deleteAll() {
-  await Promise.all([
-    container.resolve(UserRepository).delete(query => query),
-    container.resolve(AlbumRepository).delete(query => query),
-    container.resolve(PhotoRepository).delete(query => query),
-    container.resolve(UserProfileRepository).delete(query => query),
-  ])
-}
-
 describe('FirestoreRepository', () => {
+  class UserRepository extends FirestoreRepository<UserEntity> {
+    constructor() {
+      super(UserEntity)
+    }
+  }
+
+  class AlbumRepository extends FirestoreRepository<AlbumEntity> {
+    constructor() {
+      super(AlbumEntity)
+    }
+  }
+
+  class PhotoRepository extends FirestoreRepository<PhotoEntity> {
+    constructor() {
+      super(PhotoEntity)
+    }
+  }
+
+  class UserProfileRepository extends FirestoreRepository<UserProfileEntity> {
+    constructor() {
+      super(UserProfileEntity)
+    }
+  }
+
+  async function saveAll() {
+    await Promise.all([
+      container.resolve(UserRepository).saveMany(data.users as any),
+      container.resolve(AlbumRepository).saveMany(data.albums),
+      container.resolve(PhotoRepository).saveMany(data.photos),
+      container
+        .resolve(UserProfileRepository)
+        .saveMany(data.users.map(user => user.profile as any)),
+    ])
+  }
+
+  async function deleteAll() {
+    await Promise.all([
+      container.resolve(UserRepository).delete(query => query),
+      container.resolve(AlbumRepository).delete(query => query),
+      container.resolve(PhotoRepository).delete(query => query),
+      container.resolve(UserProfileRepository).delete(query => query),
+    ])
+  }
+
   beforeAll(async () => {
-    const firestore = admin.initializeApp({ projectId: 'test-e9d5b' }).firestore()
-    firestore.settings({ host: 'localhost:8080', ssl: false })
-    container.registerInstance(FIRESTORE_INSTANCE, firestore)
+    // OPTION 1: RUN WITH EMULATOR
+    // const firestore = admin.initializeApp({ projectId: 'test-e9d5b' }).firestore()
+    // firestore.settings({ host: 'localhost:8080', ssl: false })
+    // container.registerInstance(FIRESTORE_INSTANCE, firestore)
+
+    // OPTION 2: RUN WITH MOCK
+    initializeMockFirestore()
   })
 
   beforeEach(async () => {

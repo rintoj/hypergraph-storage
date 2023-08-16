@@ -19,21 +19,24 @@ import {
   paginate,
   toBase64,
 } from '../pagination'
-import {
-  DeleteOptions,
-  EntityWithOptionalId,
-  PartialEntityWithId,
-  RepositoryOptions,
-} from '../repository'
+import { RepositoryOptions } from '../repository'
 import { FieldValue, resolveFirestore } from './firestore-initializer'
 
 const MAX_PER_QUERY = 10
+const DEFAULT_PAGE_SIZE = 20
+
+type EntityWithOptionalId<Entity> = Omit<Entity, 'id'> & { id?: string }
+type PartialEntityWithId<Entity> = DeepPartial<Entity> & { id: string }
+
+interface DeleteOptions {
+  softDelete?: boolean
+}
 
 export interface FirestoreRepositoryOptions extends RepositoryOptions {
   softDelete?: never
 }
-export type UpdatableEntity<T> = Partial<T> & { id: string }
-export type IdsOrQuery<Entity extends ObjectLiteral> =
+type UpdatableEntity<T> = Partial<T> & { id: string }
+type IdsOrQuery<Entity extends ObjectLiteral> =
   | string
   | string[]
   | FirestorePaginatedQuery<Entity>
@@ -237,7 +240,7 @@ export class FirestoreRepository<Entity extends ObjectLiteral> {
       const nextQuery = token ? queryRef.startAfter(...token) : queryRef
       response = await nextQuery.get()
       const docs = response.docs.map(doc => toEntity<Entity>(doc))
-      const remainingItems = (limit ?? 20) - items.length
+      const remainingItems = (limit ?? DEFAULT_PAGE_SIZE) - items.length
       items = items.concat(filter(docs).slice(0, remainingItems))
       const lastItem =
         response?.size === limit
@@ -247,7 +250,7 @@ export class FirestoreRepository<Entity extends ObjectLiteral> {
           : undefined
       next = encodeNextToken<Entity>(orderByMap as Map<string, any>, lastItem)
     } while (
-      items.length < (limit ?? 20) &&
+      items.length < (limit ?? DEFAULT_PAGE_SIZE) &&
       response?.size > 0 &&
       next &&
       !nextTokens.includes(next)

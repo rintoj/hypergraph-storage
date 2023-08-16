@@ -8,11 +8,11 @@ export const FIRESTORE_INSTANCE = 'firestore-instance'
 export type FirebaseUser = admin.auth.UserRecord
 export const { FieldValue } = admin.firestore
 
-export type InitializeDataSourceOptions = {
+export type InitializeFirestoreOptions = {
   serviceAccountConfig?: string
 }
 
-export async function initializeFirestore(options: InitializeDataSourceOptions = {}) {
+export async function initializeFirestore(options: InitializeFirestoreOptions = {}) {
   const serviceAccountConfig = options.serviceAccountConfig ?? process.env.SERVICE_ACCOUNT_CONFIG
   if (serviceAccountConfig) {
     // eslint-disable-next-line @typescript-eslint/no-var-requires

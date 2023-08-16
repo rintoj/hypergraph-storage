@@ -2,6 +2,8 @@ import 'reflect-metadata'
 
 export * from './base-entity'
 export * from './data-source'
+export * from './firestore-query'
+export * from './firestore-repository'
 export * from './id'
 export * from './pagination'
 export * from './query'

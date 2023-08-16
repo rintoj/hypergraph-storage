@@ -12,8 +12,7 @@ import {
 import { FirestoreRepository } from '../firestore-repository'
 import { ObjectLiteral } from 'typeorm'
 
-export const DEFAULT_PAGE_SIZE = 20
-export const DEFAULT_CACHE_TIME = 5 * 1000 // 5 seconds
+const DEFAULT_CACHE_TIME = 5 * 1000 // 5 seconds
 
 export type FilterFunction<Entity extends ObjectLiteral> = (item: Entity | null) => boolean
 export type OrderBy = Map<string, FirebaseFirestore.OrderByDirection>
@@ -21,10 +20,6 @@ export type OrderBy = Map<string, FirebaseFirestore.OrderByDirection>
 type QueryBuilder<Entity extends ObjectLiteral> = (
   q: FirestoreQueryWithWhere<Entity>,
 ) => FirestoreQueryWithWhere<Entity>
-
-export function isQuery<T extends ObjectLiteral>(query: any): query is FirestoreQuery<T> {
-  return typeof query === 'object' && typeof query?.toQuery === 'function'
-}
 
 type FirebaseQuery<Entity extends ObjectLiteral> = {
   queryRef: FirebaseFirestore.Query<Entity> | FirebaseFirestore.CollectionReference<Entity>
