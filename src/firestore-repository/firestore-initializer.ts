@@ -3,7 +3,7 @@ import 'reflect-metadata'
 import * as admin from 'firebase-admin'
 import { container } from 'tsyringe'
 
-const FIRESTORE_INSTANCE = 'firestore-instance'
+export const FIRESTORE_INSTANCE = 'firestore-instance'
 
 export type FirebaseUser = admin.auth.UserRecord
 export const { FieldValue } = admin.firestore

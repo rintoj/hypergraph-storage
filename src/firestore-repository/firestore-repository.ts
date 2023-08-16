@@ -1,20 +1,44 @@
-import { chunk } from 'lodash'
-import { ClassType } from 'tsds-tools'
-import { DeepPartial, ObjectLiteral } from 'typeorm'
-import { getEntityMeta } from '../decorators/entity-decorator'
+import { chunk, omit } from 'lodash'
+import { ClassType, KeysOf, toNonNullArray } from 'tsds-tools'
+import { DeepPartial, ObjectLiteral, getMetadataArgsStorage } from 'typeorm'
+import { RelationMetadataArgs } from 'typeorm/metadata-args/RelationMetadataArgs'
+import { BaseEntity } from '../base-entity'
+import {
+  FirestorePaginatedQuery,
+  FirestoreQuery,
+  FirestoreQueryWithWhere,
+  OrderBy,
+} from '../firestore-query'
 import { generateId } from '../id'
-import { PaginatedQuery, Query, QueryWithWhere } from '../query'
-import { RepositoryOptions } from '../repository'
-import { resolveFirestore } from './firestore-initializer'
-import { paginate } from '../pagination'
+import {
+  OnPageLoad,
+  PaginatedResult,
+  PaginationFilter,
+  fromBase64,
+  paginate,
+  toBase64,
+} from '../pagination'
+import {
+  DeleteOptions,
+  EntityWithOptionalId,
+  PartialEntityWithId,
+  RepositoryOptions,
+} from '../repository'
+import { FieldValue, resolveFirestore } from './firestore-initializer'
+import { RelationIdMetadataArgs } from 'typeorm/metadata-args/RelationIdMetadataArgs'
+
+const MAX_PER_QUERY = 10
 
 export interface FirestoreRepositoryOptions extends RepositoryOptions {
-  softDelete?: boolean
+  softDelete?: never
 }
+export type UpdatableEntity<T> = Partial<T> & { id: string }
+export type IdsOrQuery<Entity extends ObjectLiteral> =
+  | string
+  | string[]
+  | FirestorePaginatedQuery<Entity>
+  | ((query: FirestorePaginatedQuery<Entity>) => FirestorePaginatedQuery<Entity>)
 
-function toEntity<Entity extends ObjectLiteral>(
-  doc?: FirebaseFirestore.DocumentSnapshot<any> | null,
-): Entity | null
 function toEntity<Entity extends ObjectLiteral>(
   doc?: FirebaseFirestore.DocumentSnapshot | null,
 ): Entity | null {
@@ -39,25 +63,100 @@ function replaceUndefinedWithNull<T>(doc: T) {
   }, {} as T)
 }
 
+function encodeNextToken<Entity extends ObjectLiteral>(
+  orderBy: OrderBy,
+  lastDocument: Entity | null | undefined,
+) {
+  if (!lastDocument) {
+    return null
+  }
+  const lastDocValues: any[] = []
+  orderBy.forEach((_, field) => {
+    lastDocValues.push(lastDocument[field as any])
+  }, [])
+  return toBase64(lastDocValues)
+}
+
+export function decodeNextToken(next: string | null | undefined): string[] | null {
+  if (next) {
+    try {
+      return fromBase64<string[]>(next) as string[]
+    } catch (e) {
+      throw new Error('Invalid next token')
+    }
+  }
+  return null
+}
+
 export class FirestoreRepository<Entity extends ObjectLiteral> {
+  protected readonly collectionName!: string
+  protected readonly defaultProps!: Entity
+  protected readonly relations!: RelationMetadataArgs[]
   constructor(
     public readonly entity: ClassType<Entity>,
     public readonly options?: FirestoreRepositoryOptions,
-  ) {}
+  ) {
+    const meta = getMetadataArgsStorage()
+    const table = meta.tables.find(table => table.target === entity)
+    this.collectionName = table?.name ?? entity.name
+    const columns = meta.columns.filter(
+      column => column.target === entity || column.target === BaseEntity,
+    )
+    this.defaultProps = columns.reduce((properties, column) => {
+      return {
+        ...properties,
+        [column.propertyName]: column.options.array ? [] : null,
+      }
+    }, {} as Entity)
+    this.relations = meta.relations.filter(
+      relation =>
+        relation.target === entity &&
+        (relation.relationType === 'many-to-one' || relation.relationType === 'one-to-one'),
+    )
+  }
 
   protected get repository(): any {
     throw new Error('"this.repository" has no implementation FirestoreRepository')
   }
 
-  public get collection() {
-    const firestore = resolveFirestore()
-    const collectionName = getEntityMeta(this.entity)?.name ?? this.entity.name
-    return firestore.collection(collectionName) as FirebaseFirestore.CollectionReference<Entity>
+  protected toDBRecord(entity: DeepPartial<Entity>) {
+    const propertiesToOmit: string[] = []
+    const relationIds = this.relations.reduce((relationIds, relation) => {
+      const key = relation.propertyName + 'Id'
+      propertiesToOmit.push(relation.propertyName)
+      return { ...relationIds, [key]: entity[relation.propertyName]?.id }
+    }, {})
+    return replaceUndefinedWithNull({
+      ...this.defaultProps,
+      ...omit(entity, propertiesToOmit),
+      ...relationIds,
+      version: (entity.version ?? 0) + 1,
+      createdAt: entity.createdAt ?? Date.now(),
+      updatedAt: Date.now(),
+    })
   }
 
-  async count(query?: QueryWithWhere<Entity>): Promise<number> {
-    // TODO: fix this logic
-    const response = await this.collection.select().get()
+  protected async idOrQueryToEntities(query: IdsOrQuery<Entity>) {
+    return toNonNullArray(
+      typeof query === 'string'
+        ? [await this.findById(query)]
+        : query instanceof Array
+        ? await this.findByIds(query)
+        : await this.findAll(query),
+    )
+  }
+
+  public get collection() {
+    const firestore = resolveFirestore()
+    return firestore.collection(
+      this.collectionName,
+    ) as FirebaseFirestore.CollectionReference<Entity>
+  }
+
+  async count(query?: FirestoreQueryWithWhere<Entity>): Promise<number> {
+    const response = query
+      ? await query.toQuery().queryRef.select().get()
+      : await this.collection.select().get()
     return response.size
   }
 
@@ -66,78 +165,99 @@ export class FirestoreRepository<Entity extends ObjectLiteral> {
     return toEntity<Entity>(await this.collection.doc(id).get())
   }
 
-  // async findByIds(ids: string[]): Promise<Array<Entity | null>> {
-  //   const items = await paginate(next =>
-  //     this.find(new PaginatedQuery<any>(this as Repository<Entity>).whereIn('id', ids).next(next)),
-  //   )
-  //   const itemsById = toByProperty(items, 'id')
-  //   return ids.map(id => itemsById[id] ?? null)
-  // }
-
-  findOne(
-    queryOrCallback?: Query<Entity> | ((query: Query<Entity>) => Query<Entity>),
-  ): Promise<Entity | null> {
-    const query =
-      typeof queryOrCallback === 'function' ? queryOrCallback(new Query(this)) : queryOrCallback
-    console.log({ query })
-    return this.collection.get(
-      query?.toQuery() ?? new Query(this).whereIsNotNull('id' as any).toQuery(),
-    )
+  async findByIds(ids: string[]): Promise<Array<Entity | null>> {
+    let itemsById = {}
+    for (const idChunk of chunk(ids, MAX_PER_QUERY)) {
+      const records = await this.collection.where('id', 'in', idChunk).get()
+      const items = toNonNullArray(records.docs.map(doc => toEntity(doc)))
+      itemsById = items.reduce((a, i) => ({ ...a, [i.id]: i }), itemsById)
+    }
+    return ids.map(id => itemsById[id as keyof typeof itemsById] || null)
   }
 
-  // async findAll(
-  //   queryOrCallback?:
-  //     | PaginatedQuery<Entity>
-  //     | ((query: PaginatedQuery<Entity>) => PaginatedQuery<Entity>),
-  //   filter?: PaginationFilter<Entity>,
-  //   onPage?: OnPageLoad<Entity>,
-  // ): Promise<Entity[]> {
-  //   const query =
-  //     (typeof queryOrCallback === 'function'
-  //       ? queryOrCallback(new PaginatedQuery(this))
-  //       : queryOrCallback) ?? new PaginatedQuery(this)
-  //   return paginate(next => this.find(query.next(next)), filter, onPage)
-  // }
+  async findOne(
+    queryOrCallback?:
+      | FirestoreQuery<Entity>
+      | ((query: FirestoreQuery<Entity>) => FirestoreQuery<Entity>),
+  ): Promise<Entity | null> {
+    const query =
+      typeof queryOrCallback === 'function'
+        ? queryOrCallback(new FirestoreQuery(this))
+        : queryOrCallback
+    const record = await query?.toQuery().queryRef.get()
+    if (!record) return null
+    return toEntity(record.docs[0])
+  }
 
-  // async find(
-  //   queryOrCallback:
-  //     | PaginatedQuery<Entity>
-  //     | ((query: PaginatedQuery<Entity>) => PaginatedQuery<Entity>),
-  // ): Promise<PaginatedResult<Entity>> {
-  //   const query =
-  //     typeof queryOrCallback === 'function'
-  //       ? queryOrCallback(new PaginatedQuery(this))
-  //       : queryOrCallback
-  //   const options = query.toQuery()
-  //   const items = await this.collection.find(options)
-  //   if (!items.length || (options.take && items.length < options.take)) {
-  //     return { next: null, items }
-  //   }
-  //   return {
-  //     next: toPaginationToken({
-  //       take: options.take ?? DEFAULT_PAGE_SIZE,
-  //       skip: (options.skip ?? 0) + (options.take ?? 0),
-  //     }),
-  //     items,
-  //   }
-  // }
+  async findAll(
+    queryOrCallback?:
+      | FirestorePaginatedQuery<Entity>
+      | ((query: FirestorePaginatedQuery<Entity>) => FirestorePaginatedQuery<Entity>),
+    filter?: PaginationFilter<Entity>,
+    onPage?: OnPageLoad<Entity>,
+  ): Promise<Entity[]> {
+    const query =
+      (typeof queryOrCallback === 'function'
+        ? queryOrCallback(new FirestorePaginatedQuery(this))
+        : queryOrCallback) ?? new FirestorePaginatedQuery(this)
+    return paginate(next => this.find(query.next(next)), filter, onPage)
+  }
 
-  // async insert(entity: EntityWithOptionalId<Entity>): Promise<Entity> {
-  //   const result = await this.collection.insert(entity)
-  //   return { ...(result.identifiers[0] ?? {}), ...entity } as Entity
-  // }
+  async find(
+    queryOrCallback:
+      | FirestorePaginatedQuery<Entity>
+      | ((query: FirestorePaginatedQuery<Entity>) => FirestorePaginatedQuery<Entity>),
+  ): Promise<PaginatedResult<Entity>> {
+    const query =
+      typeof queryOrCallback === 'function'
+        ? queryOrCallback(new FirestorePaginatedQuery(this))
+        : queryOrCallback
+    let response
+    let items: Entity[] = []
+    let next = query.toQuery().next
+    const queryRef = query.toQuery().queryRef
+    const limit = query.toQuery().limit ?? 20
+    const filterFunc = query.toQuery().filterFunction
+    const filter = (items: (Entity | null)[]): Entity[] =>
+      toNonNullArray(filterFunc ? items.filter(filterFunc) : items)
+    const nextTokens: Array<string | undefined | null> = []
+    do {
+      nextTokens.push(next)
+      const token = decodeNextToken(next)
+      const nextQuery = token ? queryRef.startAfter(...token) : queryRef
+      response = await nextQuery.get()
+      const docs = response.docs.map(doc => toEntity<Entity>(doc))
+      const remainingItems = limit - items.length
+      items = items.concat(filter(docs).slice(0, remainingItems))
+      const lastItem =
+        response?.size === limit
+          ? docs.slice(-1)[0]
+          : items.length === limit && response.size > remainingItems
+          ? items.slice(-1)[0]
+          : undefined
+      next = encodeNextToken<Entity>(query.toOrderByMap(), lastItem)
+    } while (items.length < limit && response?.size > 0 && next && !nextTokens.includes(next))
+    return { items, next }
+  }
 
-  // async insertMany(entities: Array<EntityWithOptionalId<Entity>>): Promise<Entity[]> {
-  //   const result = await this.collection.insert(entities)
-  //   return entities.map(
-  //     (entity, index) => ({ ...(result.identifiers[index] ?? {}), ...entity } as Entity),
-  //   )
-  // }
+  async insert(entity: EntityWithOptionalId<Entity>): Promise<Entity> {
+    const id = (entity as Entity).id || generateId()
+    const record = this.toDBRecord({ id, ...entity } as any as Entity)
+    await this.collection.doc(id).create(record)
+    return record
+  }
+
+  async insertMany(entities: Array<EntityWithOptionalId<Entity>>): Promise<Entity[]> {
+    let records: Entity[] = []
+    for (const part of chunk(entities, 10)) {
+      records = records.concat(await Promise.all(part.map(entity => this.insert(entity))))
+    }
+    return records
+  }
 
   async save(entity: DeepPartial<Entity>): Promise<Entity> {
     const id = (entity as Entity).id || generateId()
-    const timestamp = Date.now()
-    const record = replaceUndefinedWithNull({ ...entity, id, updatedAt: timestamp }) as Entity
+    const record = this.toDBRecord({ ...entity, id }) as Entity
     await this.collection.doc(id).set(record, { merge: true })
     return this.findById(id) as Promise<Entity>
   }
@@ -148,72 +268,82 @@ export class FirestoreRepository<Entity extends ObjectLiteral> {
   ): Promise<Entity[]> {
     let records: Entity[] = []
     for (const part of chunk(entities, options?.chunk ?? 10)) {
-      console.log('SAving ', part)
       records = records.concat(await Promise.all(part.map(entity => this.save(entity))))
     }
     return records
   }
 
-  // async update(entity: PartialEntityWithId<Entity>): Promise<Entity> {
-  //   const record = await this.findById(entity.id)
-  //   if (!record) throw new Error(`No such ${this.entity.name} of id '${entity.id}'`)
-  //   await this.collection.update(entity.id, entity)
-  //   return { ...record, ...entity }
-  // }
+  async update(entity: PartialEntityWithId<Entity>): Promise<Entity> {
+    const existingRecord = await this.findById(entity.id)
+    if (!existingRecord) {
+      throw new Error(`No record with id "${entity.id}" available for update!`)
+    }
+    const record = this.toDBRecord({ ...existingRecord, ...entity }) as Entity
+    await this.collection.doc(entity.id).update(record as any)
+    return { ...existingRecord, ...record }
+  }
 
-  // async updateMany(query: IdsOrQuery<Entity>, entity: DeepPartial<Entity>): Promise<Entity[]> {
-  //   const where = await this.toFindOptionsWhere(query)
-  //   if (!where) return []
-  //   await this.collection.update(where, entity)
-  //   return this.collection.find(where)
-  // }
+  async updateMany(query: IdsOrQuery<Entity>, entity: DeepPartial<Entity>): Promise<Entity[]> {
+    let records: Entity[] = []
+    const entities = await this.idOrQueryToEntities(query)
+    for (const part of chunk(entities, 10)) {
+      records = records.concat(
+        await Promise.all(part.map(item => this.update({ ...item, ...entity } as any))),
+      )
+    }
+    return records
+  }
 
-  // async delete(query: IdsOrQuery<Entity>, options?: DeleteOptions): Promise<Entity[]> {
-  //   const where = await this.toFindOptionsWhere(query)
-  //   if (!where) return []
-  //   const records = await this.collection.find(where)
-  //   if (options?.softDelete ?? this.options?.softDelete) {
-  //     await this.collection.softDelete(where)
-  //   } else {
-  //     await this.collection.delete(where)
-  //   }
-  //   return records
-  // }
+  async delete(query: IdsOrQuery<Entity>, options?: DeleteOptions): Promise<Entity[]> {
+    const entities = await this.idOrQueryToEntities(query)
+    if (options?.softDelete ?? this.options?.softDelete) {
+      throw new Error('Soft delete is not implemented yet!')
+    }
+    for (const part of chunk(entities, 10)) {
+      await Promise.all(part.map(item => this.collection.doc(item.id).delete()))
+    }
+    return entities
+  }
 
-  // async restore(query: IdsOrQuery<Entity>): Promise<Entity[]> {
-  //   const where = await this.toFindOptionsWhere(query)
-  //   if (!where) return []
-  //   await this.collection.restore(where)
-  //   return this.collection.find(where)
-  // }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async restore(query: IdsOrQuery<Entity>): Promise<Entity[]> {
+    throw new Error('Soft delete and restore options are not implemented yet!')
+  }
 
-  // async increment<Key extends KeysOf<Entity, number>>(
-  //   query: IdsOrQuery<Entity>,
-  //   key: Key,
-  //   incrementBy = 1,
-  // ): Promise<Entity[]> {
-  //   const where = await this.toFindOptionsWhere(query)
-  //   if (!where) return []
-  //   await this.collection.increment(where, key, incrementBy)
-  //   return this.collection.find(where)
-  // }
+  async addToArray<K extends KeysOf<Entity, Array<any>>>(key: K, entity: UpdatableEntity<Entity>) {
+    const value = entity[key] as any
+    const data = {
+      ...this.toDBRecord(entity as any as Entity),
+      ...(value ? { [key]: FieldValue.arrayUnion(...value) } : {}),
+    } as any
+    return this.save(data)
+  }
 
-  // protected async toFindOptionsWhere(
-  //   queryOrCallback: IdsOrQuery<Entity>,
-  // ): Promise<FindOptionsWhere<any> | undefined> {
-  //   const queryOrId =
-  //     typeof queryOrCallback === 'function' ? queryOrCallback(new Query(this)) : queryOrCallback
-  //   const where = isQuery(queryOrId)
-  //     ? queryOrId.toQuery().where
-  //     : queryOrId instanceof Array
-  //     ? new QueryWithWhere(this).whereIn('id' as any, queryOrId as any[]).toQuery().where
-  //     : new QueryWithWhere(this).whereEqualTo('id' as any, queryOrId as any).toQuery().where
-  //   if (!where) throw new Error('Invalid query: no WHERE condition!')
-  //   if (isQuery(queryOrId) && where instanceof Array) {
-  //     const items = await paginate(next => this.find(PaginatedQuery.from(queryOrId).next(next)))
-  //     if (!items.length) return undefined
-  //     return this.toFindOptionsWhere(items.map(i => i.id))
-  //   }
-  //   return where
-  // }
+  async removeFromArray<K extends KeysOf<Entity, Array<any>>>(
+    key: K,
+    entity: UpdatableEntity<Entity>,
+  ) {
+    const value = entity[key] as any
+    const data = {
+      ...this.toDBRecord(entity as any as Entity),
+      ...(value ? { [key]: FieldValue.arrayRemove(...value) } : {}),
+    } as any
+    return this.save(data)
+  }
+
+  async increment<Key extends KeysOf<Entity, number>>(
+    query: IdsOrQuery<Entity>,
+    key: Key,
+    incrementBy = 1,
+  ): Promise<Entity[]> {
+    const entities = await this.idOrQueryToEntities(query)
+    for (const part of chunk(entities, 10)) {
+      await Promise.all(
+        part.map(item =>
+          this.save({ id: item.id, [key]: FieldValue.increment(incrementBy) } as any),
+        ),
+      )
+    }
+    return this.idOrQueryToEntities(query)
+  }
 }

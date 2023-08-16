@@ -1,6 +1,5 @@
-import { Column, JoinColumn, JoinTable, ManyToMany, OneToMany, OneToOne } from '../typeorm'
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, OneToMany, OneToOne } from 'typeorm'
 import { BaseEntity } from '../base-entity'
-import { Entity } from '../decorators'
 import { AlbumEntity } from './album-entity'
 import { PhotoEntity } from './photo-entity'
 import { UserProfileEntity } from './user-profile-entity'

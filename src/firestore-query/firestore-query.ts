@@ -10,10 +10,13 @@ import {
   TypeOf,
 } from 'tsds-tools'
 import { FirestoreRepository } from '../firestore-repository'
-import { ObjectLiteral } from '../typeorm'
+import { ObjectLiteral } from 'typeorm'
 
 export const DEFAULT_PAGE_SIZE = 20
 export const DEFAULT_CACHE_TIME = 5 * 1000 // 5 seconds
+
+export type FilterFunction<Entity extends ObjectLiteral> = (item: Entity | null) => boolean
+export type OrderBy = Map<string, FirebaseFirestore.OrderByDirection>
 
 type QueryBuilder<Entity extends ObjectLiteral> = (
   q: FirestoreQueryWithWhere<Entity>,
@@ -28,6 +31,8 @@ type FirebaseQuery<Entity extends ObjectLiteral> = {
   cache?: number | boolean
   next?: string | null
   limit?: number | null
+  filterFunction?: FilterFunction<Entity>
+  orderByMap?: OrderBy
 }
 
 export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
@@ -287,12 +292,29 @@ export class FirestoreQuery<Entity extends ObjectLiteral> extends FirestoreQuery
 
   orderByAscending<Key extends KeysOf<Entity, NonArrayPrimitive>>(key: Key) {
     this.query.queryRef = this.query.queryRef.orderBy(key, 'asc')
+    if (!this.query.orderByMap) {
+      this.query.orderByMap = new Map()
+    }
+    this.query.orderByMap.set(key, 'asc')
     return this
   }
 
   orderByDescending<Key extends KeysOf<Entity, NonArrayPrimitive>>(key: Key) {
     this.query.queryRef = this.query.queryRef.orderBy(key, 'desc')
+    if (!this.query.orderByMap) {
+      this.query.orderByMap = new Map()
+    }
+    this.query.orderByMap.set(key, 'desc')
     return this
+  }
+
+  toOrderByMap() {
+    if (this.query.orderByMap) {
+      return this.query.orderByMap
+    }
+    const orderById: OrderBy = new Map()
+    orderById.set('id', 'asc')
+    return orderById
   }
 
   select<Key extends KeysOf<Entity, Primitive>>(key: Key) {
@@ -315,7 +337,6 @@ export class FirestoreQuery<Entity extends ObjectLiteral> extends FirestoreQuery
     //   this.query,
     // )
     throw new Error('fetchRelation: Not implemented yet!')
-    // return this
   }
 
   cache(cache: boolean | number = DEFAULT_CACHE_TIME) {
@@ -348,6 +369,14 @@ export class FirestorePaginatedQuery<Entity extends ObjectLiteral> extends Fires
 
   limit(limit: number | null | undefined) {
     this.query.limit = limit
+    return this
+  }
+
+  filter(predicate: FilterFunction<Entity>) {
+    if (this.query.filterFunction) {
+      throw new Error('Query.filter() can only be called once!')
+    }
+    this.query.filterFunction = predicate
     return this
   }
 }
