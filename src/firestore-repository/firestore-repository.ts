@@ -25,7 +25,6 @@ import {
   RepositoryOptions,
 } from '../repository'
 import { FieldValue, resolveFirestore } from './firestore-initializer'
-import { RelationIdMetadataArgs } from 'typeorm/metadata-args/RelationIdMetadataArgs'
 
 const MAX_PER_QUERY = 10
 

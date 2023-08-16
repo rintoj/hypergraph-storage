@@ -329,7 +329,7 @@ describe('FirestoreRepository', () => {
           q => q.whereEqualTo('age', 48),
           q => q.whereEqualTo('age', 64),
         )
-        .whereTextContains('gender', 'Male'),
+        .whereTextStartsWith('gender', 'Male'),
     )
     expect(result.items.length).toEqual(
       data.users.filter(

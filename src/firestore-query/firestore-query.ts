@@ -265,7 +265,9 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     const queryBuilders = [queryBuilder1, queryBuilder2, ...otherQueryBuilder].filter(isDefined)
     const filters = queryBuilders.map(queryBuilder => {
-      const query = new FirestoreQuery<Entity>(this.repository)
+      const query = new FirestoreQueryWithWhere<Entity>({
+        collection: admin.firestore.Filter,
+      } as any)
       return queryBuilder(query).toQuery().queryRef
     })
     this.query.queryRef = this.query.queryRef.where(admin.firestore.Filter.or(...filters))
