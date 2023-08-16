@@ -173,7 +173,7 @@ class MockFirestoreCollection<T extends RecordWithId> {
       ? new MockFirestoreExistingDocQuery(this.collectionData(), item)
       : new MockFirestoreNewDocQuery(this.collectionData(), id)
   }
-  where(property: string, operator: string, value: any) {
+  where(property: string, operator: string, value: any): MockFirestoreCollection<T> {
     if ((property as any)?.operator === 'OR') {
       const docs = (property as any).filters?.reduce((a: any, filter: any) => {
         return {
