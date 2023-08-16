@@ -674,6 +674,18 @@ class UserRepository extends RepositoryWithIdCache<User> {
 }
 ```
 
+or if you are using firestore do the following
+
+```ts
+import { FirestoreRepositoryWithIdCache } from '@hgraph/storage'
+
+class UserRepository extends FirestoreRepositoryWithIdCache<User> {
+  constructor() {
+    super(User)
+  }
+}
+```
+
 Alternatively you can build your own cache-by-a-property using the following code.
 
 ```ts
@@ -692,6 +704,36 @@ class RepositoryWithNameCache<Entity extends ObjectLiteral> extends Repository<E
 }
 
 class UserRepository extends RepositoryWithNameCache<User> {
+  constructor() {
+    super(User)
+  }
+}
+```
+
+For firestore:
+
+```ts
+import {
+  FirestoreRepository,
+  FirestoreRepositoryOptions,
+  WithFirestoreCache,
+} from '@hgraph/storage'
+import { ObjectLiteral } from 'typeorm'
+import { ClassType } from 'tsds-tools'
+
+@WithFirestoreCache('name')
+class FirestoreRepositoryWithNameCache<
+  Entity extends ObjectLiteral,
+> extends FirestoreRepository<Entity> {
+  constructor(
+    public readonly entity: ClassType<Entity>,
+    public readonly options?: FirestoreRepositoryOptions,
+  ) {
+    super(entity, options)
+  }
+}
+
+class UserRepository extends FirestoreRepositoryWithNameCache<User> {
   constructor() {
     super(User)
   }
