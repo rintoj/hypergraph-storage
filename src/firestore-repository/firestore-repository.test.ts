@@ -75,6 +75,10 @@ describe('FirestoreRepository', () => {
     await saveAll()
   })
 
+  afterAll(async () => {
+    await deleteAll()
+  })
+
   test('should count the number of entities', async () => {
     const repository = container.resolve(AlbumRepository)
     const result = await repository.count()

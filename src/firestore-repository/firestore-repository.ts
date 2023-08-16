@@ -133,7 +133,7 @@ export class FirestoreRepository<Entity extends ObjectLiteral> {
     const relationIds = this.relations.reduce((relationIds, relation) => {
       const key = relation.propertyName + 'Id'
       propertiesToOmit.push(relation.propertyName)
-      return { ...relationIds, [key]: entity[relation.propertyName]?.id }
+      return { ...relationIds, [key]: entity[relation.propertyName]?.id ?? entity[key] }
     }, {})
     return replaceUndefinedWithNull({
       ...this.defaultProps,
