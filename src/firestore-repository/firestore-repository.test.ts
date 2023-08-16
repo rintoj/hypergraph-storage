@@ -65,7 +65,7 @@ async function deleteAll() {
 
 describe('FirestoreRepository', () => {
   beforeAll(async () => {
-    const firestore = admin.initializeApp({ projectId: 'onprem-e9d5b' }).firestore()
+    const firestore = admin.initializeApp({ projectId: 'test-e9d5b' }).firestore()
     firestore.settings({ host: 'localhost:8080', ssl: false })
     container.registerInstance(FIRESTORE_INSTANCE, firestore)
   })
