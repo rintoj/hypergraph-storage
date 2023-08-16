@@ -1,1 +1,1 @@
-export * from './initialize-data-source'
+export * from './initialize-datasource'
