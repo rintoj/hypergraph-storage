@@ -524,10 +524,10 @@ export class UserRepository extends FirestoreRepository<UserEntity> {
 The following apis are supported
 
 ```ts
-import { Query } from '@hgraph/storage'
+import { FirestoreQuery } from '@hgraph/storage'
 
 const repo = new UserRepository()
-const query = new Query(repo)
+const query = new FirestoreQuery(repo)
 
   // select columns
   .select('bio')
