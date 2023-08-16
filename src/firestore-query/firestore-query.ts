@@ -33,6 +33,7 @@ type FirebaseQuery<Entity extends ObjectLiteral> = {
   limit?: number | null
   filterFunction?: FilterFunction<Entity>
   orderByMap?: OrderBy
+  filteredProps: Set<string>
 }
 
 export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
@@ -41,6 +42,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   constructor(public readonly repository: FirestoreRepository<Entity>) {
     this.query = {
       queryRef: repository.collection,
+      filteredProps: new Set(),
       cache: DEFAULT_CACHE_TIME,
     }
   }
@@ -63,6 +65,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     if (value === undefined) return this
     this.query.queryRef = this.query.queryRef.where(key, '==', value)
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -72,6 +75,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     if (value === undefined) return this
     this.query.queryRef = this.query.queryRef.where(key, '!=', value)
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -81,6 +85,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     if (value === undefined) return this
     this.query.queryRef = this.query.queryRef.where(key, '>', value)
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -90,6 +95,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     if (value === undefined) return this
     this.query.queryRef = this.query.queryRef.where(key, '<=', value)
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -99,6 +105,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     if (value === undefined) return this
     this.query.queryRef = this.query.queryRef.where(key, '>=', value)
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -108,6 +115,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     if (value === undefined) return this
     this.query.queryRef = this.query.queryRef.where(key, '<', value)
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -117,6 +125,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     if (value === undefined) return this
     this.query.queryRef = this.query.queryRef.where(key, '<', value)
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -126,6 +135,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     if (value === undefined) return this
     this.query.queryRef = this.query.queryRef.where(key, '>=', value)
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -135,6 +145,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     if (value === undefined) return this
     this.query.queryRef = this.query.queryRef.where(key, '<=', value)
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -144,6 +155,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     if (value === undefined) return this
     this.query.queryRef = this.query.queryRef.where(key, '>', value)
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -154,6 +166,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     if (from === undefined || to === undefined) return this
     this.query.queryRef = this.query.queryRef.where(key, '>=', from).where(key, '<=', to)
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -174,6 +187,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
     this.query.queryRef = this.query.queryRef
       .where(key, '>=', value)
       .where(key, '<=', value + '\uf8ff')
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -219,16 +233,19 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     if (value === undefined) return this
     this.query.queryRef = this.query.queryRef.where(key, 'in', value)
+    this.query.filteredProps.add(key)
     return this
   }
 
   whereIsNull<Key extends KeysOf<Entity>>(key: Key) {
     this.query.queryRef = this.query.queryRef.where(key, '==', null)
+    this.query.filteredProps.add(key)
     return this
   }
 
   whereIsNotNull<Key extends KeysOf<Entity>>(key: Key) {
     this.query.queryRef = this.query.queryRef.where(key, '!=', null)
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -238,6 +255,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     if (value === undefined) return this
     this.query.queryRef = this.query.queryRef.where(key, 'array-contains', value)
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -247,6 +265,7 @@ export class FirestoreQueryWithWhere<Entity extends ObjectLiteral> {
   ) {
     if (value === undefined) return this
     this.query.queryRef = this.query.queryRef.where(key, 'array-contains-any', value)
+    this.query.filteredProps.add(key)
     return this
   }
 
@@ -311,12 +330,7 @@ export class FirestoreQuery<Entity extends ObjectLiteral> extends FirestoreQuery
   }
 
   toOrderByMap() {
-    if (this.query.orderByMap) {
-      return this.query.orderByMap
-    }
-    const orderById: OrderBy = new Map()
-    orderById.set('id', 'asc')
-    return orderById
+    return this.query.orderByMap as OrderBy
   }
 
   select<Key extends KeysOf<Entity, Primitive>>(key: Key) {

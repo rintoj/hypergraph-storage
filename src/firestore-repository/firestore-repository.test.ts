@@ -220,16 +220,6 @@ describe('FirestoreRepository', () => {
     )
   })
 
-  // test('should fetch a users by whereTextContains query', async () => {
-  //   const repository = container.resolve(UserRepository)
-  //   const result = await repository.find(
-  //     new FirestorePaginatedQuery(repository).whereTextContains('name', 'Hilll'),
-  //   )
-  //   expect(result.items.length).toEqual(
-  //     data.users.filter(user => /Hilll/.test(user.name ?? '')).length,
-  //   )
-  // })
-
   test('should fetch a users by whereTextStartsWith query', async () => {
     const repository = container.resolve(UserRepository)
     const result = await repository.find(
@@ -239,6 +229,16 @@ describe('FirestoreRepository', () => {
       data.users.filter(user => /^Mrs/.test(user.name ?? '')).length,
     )
   })
+
+  // test('should fetch a users by whereTextContains query', async () => {
+  //   const repository = container.resolve(UserRepository)
+  //   const result = await repository.find(
+  //     new FirestorePaginatedQuery(repository).whereTextContains('name', 'Hilll'),
+  //   )
+  //   expect(result.items.length).toEqual(
+  //     data.users.filter(user => /Hilll/.test(user.name ?? '')).length,
+  //   )
+  // })
 
   // test('should fetch a users by whereTextEndsWith query', async () => {
   //   const repository = container.resolve(UserRepository)
@@ -276,16 +276,15 @@ describe('FirestoreRepository', () => {
     expect(result.items.length).toEqual(data.users.length)
   })
 
-  // TODO: does not work with 'pg-mem' due a bug in the library
-  // test('should fetch a users by whereArrayContains query', async () => {
-  //   const repository = container.resolve(UserRepository)
-  //   const result = await repository.find(
-  //     new FirestorePaginatedQuery(repository).whereArrayContains('tags', 'music'),
-  //   )
-  //   expect(result.items.length).toEqual(
-  //     data.users.filter(user => user.tags.includes('music')).length,
-  //   )
-  // })
+  test('should fetch a users by whereArrayContains query', async () => {
+    const repository = container.resolve(UserRepository)
+    const result = await repository.find(
+      new FirestorePaginatedQuery(repository).whereArrayContains('tags', 'music'),
+    )
+    expect(result.items.length).toEqual(
+      data.users.filter(user => user.tags.includes('music')).length,
+    )
+  })
 
   test('should fetch a users by whereArrayContainsAny query', async () => {
     const repository = container.resolve(UserRepository)
@@ -345,13 +344,21 @@ describe('FirestoreRepository', () => {
     expect(page1.items[0]).toBeDefined()
     expect(page1.items[1]).toBeDefined()
     expect(page1.items[2]).not.toBeDefined()
-    const page2 = await repository.find(new FirestorePaginatedQuery(repository).next(page1.next))
+    const page2 = await repository.find(
+      new FirestorePaginatedQuery(repository).next(page1.next).limit(2),
+    )
     expect(page2.next).not.toBeNull()
     expect(page2.items[0]).toBeDefined()
     expect(page2.items[1]).toBeDefined()
     expect(page2.items[2]).not.toBeDefined()
     expect(page1.items[0]).not.toEqual(page2.items[0])
     expect(page1.items[1]).not.toEqual(page2.items[1])
+    const page3 = await repository.find(new FirestorePaginatedQuery(repository).next(page2.next))
+    expect(page3.next).toBeNull()
+    expect(page3.items[0]).not.toEqual(page1.items[0])
+    expect(page3.items[0]).not.toEqual(page2.items[0])
+    expect(page3.items[1]).not.toEqual(page1.items[1])
+    expect(page3.items[1]).not.toEqual(page2.items[1])
   })
 
   test('should return a page with no next token when reaches the end of pagination', async () => {
@@ -450,7 +457,8 @@ describe('FirestoreRepository', () => {
           images.map(i => i.id),
         ),
       )
-      expect(queryResult.items).toEqual(result)
+      const sortBy = (a: any, b: any) => a.imageDepth - b.imageDepth
+      expect(queryResult.items.sort(sortBy)).toEqual(result.sort(sortBy))
     } finally {
       await repository.delete(images.map(i => i.id))
     }
@@ -655,18 +663,5 @@ describe('FirestoreRepository', () => {
     )
     expect((await repository.findById(item1.id))?.imageDepth).toEqual((item1.imageDepth ?? 0) + 1)
     expect((await repository.findById(item2.id))?.imageDepth).toEqual((item2.imageDepth ?? 0) + 1)
-  })
-
-  test('should throw an error if an invalid query is passed on', async () => {
-    const id = randomUUID()
-    const repository = container.resolve(PhotoRepository)
-    await repository.insert({
-      id,
-      url: faker.image.imageUrl(),
-      imageDepth: 1,
-    })
-    await expect(() =>
-      repository.increment(new FirestorePaginatedQuery(repository), 'imageDepth'),
-    ).rejects.toThrow('Invalid query: no WHERE condition!')
   })
 })

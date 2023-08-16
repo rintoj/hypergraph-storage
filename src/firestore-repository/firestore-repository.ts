@@ -4,6 +4,7 @@ import { DeepPartial, ObjectLiteral, getMetadataArgsStorage } from 'typeorm'
 import { RelationMetadataArgs } from 'typeorm/metadata-args/RelationMetadataArgs'
 import { BaseEntity } from '../base-entity'
 import {
+  FilterFunction,
   FirestorePaginatedQuery,
   FirestoreQuery,
   FirestoreQueryWithWhere,
@@ -66,7 +67,7 @@ function encodeNextToken<Entity extends ObjectLiteral>(
   orderBy: OrderBy,
   lastDocument: Entity | null | undefined,
 ) {
-  if (!lastDocument) {
+  if (!lastDocument || !orderBy) {
     return null
   }
   const lastDocValues: any[] = []
@@ -76,7 +77,7 @@ function encodeNextToken<Entity extends ObjectLiteral>(
   return toBase64(lastDocValues)
 }
 
-export function decodeNextToken(next: string | null | undefined): string[] | null {
+function decodeNextToken(next: string | null | undefined): string[] | null {
   if (next) {
     try {
       return fromBase64<string[]>(next) as string[]
@@ -85,6 +86,15 @@ export function decodeNextToken(next: string | null | undefined): string[] | nul
     }
   }
   return null
+}
+
+function createFilterFunction<Entity extends ObjectLiteral>(
+  filterFunction: FilterFunction<Entity> | undefined,
+) {
+  if (filterFunction) {
+    return (items: (Entity | null)[]): Entity[] => toNonNullArray(items.filter(filterFunction))
+  }
+  return (items: (Entity | null)[]): Entity[] => toNonNullArray(items)
 }
 
 export class FirestoreRepository<Entity extends ObjectLiteral> {
@@ -213,12 +223,13 @@ export class FirestoreRepository<Entity extends ObjectLiteral> {
         : queryOrCallback
     let response
     let items: Entity[] = []
-    let next = query.toQuery().next
-    const queryRef = query.toQuery().queryRef
-    const limit = query.toQuery().limit ?? 20
-    const filterFunc = query.toQuery().filterFunction
-    const filter = (items: (Entity | null)[]): Entity[] =>
-      toNonNullArray(filterFunc ? items.filter(filterFunc) : items)
+    let { next } = query.toQuery()
+    if (!query.toQuery().orderByMap) {
+      const key = Array.from(query.toQuery().filteredProps)[0] ?? 'id'
+      query.orderByAscending(key as any)
+    }
+    const { queryRef, limit, orderByMap, filterFunction } = query.toQuery()
+    const filter = createFilterFunction(filterFunction)
     const nextTokens: Array<string | undefined | null> = []
     do {
       nextTokens.push(next)
@@ -226,7 +237,7 @@ export class FirestoreRepository<Entity extends ObjectLiteral> {
       const nextQuery = token ? queryRef.startAfter(...token) : queryRef
       response = await nextQuery.get()
       const docs = response.docs.map(doc => toEntity<Entity>(doc))
-      const remainingItems = limit - items.length
+      const remainingItems = (limit ?? 20) - items.length
       items = items.concat(filter(docs).slice(0, remainingItems))
       const lastItem =
         response?.size === limit
@@ -234,8 +245,13 @@ export class FirestoreRepository<Entity extends ObjectLiteral> {
           : items.length === limit && response.size > remainingItems
           ? items.slice(-1)[0]
           : undefined
-      next = encodeNextToken<Entity>(query.toOrderByMap(), lastItem)
-    } while (items.length < limit && response?.size > 0 && next && !nextTokens.includes(next))
+      next = encodeNextToken<Entity>(orderByMap as Map<string, any>, lastItem)
+    } while (
+      items.length < (limit ?? 20) &&
+      response?.size > 0 &&
+      next &&
+      !nextTokens.includes(next)
+    )
     return { items, next }
   }
 
