@@ -27,7 +27,7 @@
     "nanoid": "3.1.23",
     "pg": "^8.8.0",
     "pg-mem": "^2.6.12",
-    "tsds-tools": "^1.0.3",
+    "tsds-tools": "^1.0.6",
     "tsyringe": "^4.8.0",
     "typeorm": "^0.3.17"
   },
