@@ -74,7 +74,7 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     return this.setWhere(key, Not(value))
   }
 
-  whereMoreThan<Key extends KeysOf<Entity, number>>(
+  whereMoreThan<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
@@ -82,7 +82,7 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     return this.setWhere(key, MoreThan(value))
   }
 
-  whereNotMoreThan<Key extends KeysOf<Entity, number>>(
+  whereNotMoreThan<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
@@ -90,7 +90,7 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     return this.setWhere(key, Not(MoreThan(value)))
   }
 
-  whereMoreThanOrEqual<Key extends KeysOf<Entity, number>>(
+  whereMoreThanOrEqual<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
@@ -98,7 +98,7 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     return this.setWhere(key, MoreThanOrEqual(value))
   }
 
-  whereNotMoreThanOrEqual<Key extends KeysOf<Entity, number>>(
+  whereNotMoreThanOrEqual<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
@@ -106,7 +106,7 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     return this.setWhere(key, Not(MoreThanOrEqual(value)))
   }
 
-  whereLessThan<Key extends KeysOf<Entity, number>>(
+  whereLessThan<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
@@ -114,7 +114,7 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     return this.setWhere(key, LessThan(value))
   }
 
-  whereNotLessThan<Key extends KeysOf<Entity, number>>(
+  whereNotLessThan<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
@@ -122,7 +122,7 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     return this.setWhere(key, Not(LessThan(value)))
   }
 
-  whereLessThanOrEqual<Key extends KeysOf<Entity, number>>(
+  whereLessThanOrEqual<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
@@ -130,7 +130,7 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     return this.setWhere(key, LessThanOrEqual(value))
   }
 
-  whereNotLessThanOrEqual<Key extends KeysOf<Entity, number>>(
+  whereNotLessThanOrEqual<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
