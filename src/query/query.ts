@@ -62,7 +62,7 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
+    if (value === undefined) return this.whereIsNull(key)
     return this.setWhere(key, value)
   }
 
@@ -70,7 +70,7 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
+    if (value === undefined) return this.whereIsNotNull(key)
     return this.setWhere(key, Not(value))
   }
 
@@ -78,64 +78,56 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, MoreThan(value))
+    return this.setWhere(key, MoreThan(value ?? 0))
   }
 
   whereNotMoreThan<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, Not(MoreThan(value)))
+    return this.setWhere(key, Not(MoreThan(value ?? 0)))
   }
 
   whereMoreThanOrEqual<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, MoreThanOrEqual(value))
+    return this.setWhere(key, MoreThanOrEqual(value ?? 0))
   }
 
   whereNotMoreThanOrEqual<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, Not(MoreThanOrEqual(value)))
+    return this.setWhere(key, Not(MoreThanOrEqual(value ?? 0)))
   }
 
   whereLessThan<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, LessThan(value))
+    return this.setWhere(key, LessThan(value ?? 0))
   }
 
   whereNotLessThan<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, Not(LessThan(value)))
+    return this.setWhere(key, Not(LessThan(value ?? 0)))
   }
 
   whereLessThanOrEqual<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, LessThanOrEqual(value))
+    return this.setWhere(key, LessThanOrEqual(value ?? 0))
   }
 
   whereNotLessThanOrEqual<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, Not(LessThanOrEqual(value)))
+    return this.setWhere(key, Not(LessThanOrEqual(value ?? 0)))
   }
 
   whereBetween<Key extends KeysOf<Entity, number>>(
@@ -143,64 +135,56 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     from: TypeOf<Entity, Key> | undefined,
     to: TypeOf<Entity, Key> | undefined,
   ) {
-    if (from === undefined || to === undefined) return this
-    return this.setWhere(key, Between(from, to))
+    return this.setWhere(key, Between(from ?? 0, to ?? 0))
   }
 
   whereTextContains<Key extends KeysOf<Entity, string>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, Like(`%${value}%`))
+    return this.setWhere(key, Like(`%${value ?? ''}%`))
   }
 
   whereTextStartsWith<Key extends KeysOf<Entity, string>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, Like(`${value}%`))
+    return this.setWhere(key, Like(`${value ?? ''}%`))
   }
 
   whereTextEndsWith<Key extends KeysOf<Entity, string>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, Like(`%${value}`))
+    return this.setWhere(key, Like(`%${value ?? ''}`))
   }
 
   whereTextInAnyCaseContains<Key extends KeysOf<Entity, string>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, ILike(`%${value}%`))
+    return this.setWhere(key, ILike(`%${value ?? ''}%`))
   }
 
   whereTextInAnyCaseStartsWith<Key extends KeysOf<Entity, string>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, ILike(`${value}%`))
+    return this.setWhere(key, ILike(`${value ?? ''}%`))
   }
 
   whereTextInAnyCaseEndsWith<Key extends KeysOf<Entity, string>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, ILike(`%${value}`))
+    return this.setWhere(key, ILike(`%${value ?? ''}`))
   }
 
   whereIn<Key extends KeysOf<Entity, NonArrayPrimitive>>(
     key: Key,
     value: TypeOf<Entity, Key>[] | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, In(value))
+    return this.setWhere(key, In(value ?? []))
   }
 
   whereIsNull<Key extends KeysOf<Entity>>(key: Key) {
@@ -215,16 +199,14 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     key: Key,
     value: InferredType<Entity, Key> | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, ArrayContains([value]))
+    return this.setWhere(key, ArrayContains(value ? [value] : []))
   }
 
   whereArrayContainsAny<Key extends KeysOf<Entity, ArrayPrimitive>>(
     key: Key,
     value: InferredType<Entity, Key>[] | undefined,
   ) {
-    if (value === undefined) return this
-    return this.setWhere(key, ArrayOverlap(value as any))
+    return this.setWhere(key, ArrayOverlap(value ?? []))
   }
 
   whereJoin<
