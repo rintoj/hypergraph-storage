@@ -3,6 +3,7 @@ import { customAlphabet } from 'nanoid'
 
 export const ALPHABETS = {
   ALPHANUMERIC: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+  NUMERIC: '0123456789',
 }
 
 /**
@@ -17,7 +18,7 @@ export function createRandomIdGenerator(
 }
 
 export const generateId = createRandomIdGenerator(8, ALPHABETS.ALPHANUMERIC)
-
-export function generateIdOf(input: string) {
-  return createHash('shake256', { outputLength: 8 }).update(input).digest('hex')
-}
+export const generateNumericId = () =>
+  `${Date.now().toString().substring(6)}${createRandomIdGenerator(10, ALPHABETS.NUMERIC)()}`
+export const generateIdOf = (input: string) =>
+  createHash('shake256', { outputLength: 8 }).update(input).digest('hex')
