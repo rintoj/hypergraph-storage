@@ -84,10 +84,13 @@ export class Repository<Entity extends ObjectLiteral> {
       | PaginatedQuery<Entity>
       | ((query: PaginatedQuery<Entity>) => PaginatedQuery<Entity>),
   ): Promise<PaginatedResult<Entity>> {
-    const query =
+    let query =
       typeof queryOrCallback === 'function'
         ? queryOrCallback(new PaginatedQuery(this))
         : queryOrCallback
+    if (Object.keys(query.toQuery().order ?? {}).length) {
+      query = query.orderByAscending('id' as any)
+    }
     const options = query.toQuery()
     const items = await this.repository.find(options)
     if (!items.length || (options.take && items.length < options.take)) {
@@ -137,13 +140,13 @@ export class Repository<Entity extends ObjectLiteral> {
     const where = await this.toFindOptionsWhere(query)
     if (!where) return []
     await this.repository.update(where, entity)
-    return this.repository.find(where)
+    return this.repository.find({ where })
   }
 
   async delete(query: IdsOrQuery<Entity>, options?: DeleteOptions): Promise<Entity[]> {
     const where = await this.toFindOptionsWhere(query)
     if (!where) return []
-    const records = await this.repository.find(where)
+    const records = await this.repository.find({ where })
     if (options?.softDelete ?? this.options?.softDelete) {
       await this.repository.softDelete(where)
     } else {
@@ -156,7 +159,7 @@ export class Repository<Entity extends ObjectLiteral> {
     const where = await this.toFindOptionsWhere(query)
     if (!where) return []
     await this.repository.restore(where)
-    return this.repository.find(where)
+    return this.repository.find({ where })
   }
 
   async increment<Key extends KeysOf<Entity, number>>(
@@ -167,7 +170,7 @@ export class Repository<Entity extends ObjectLiteral> {
     const where = await this.toFindOptionsWhere(query)
     if (!where) return []
     await this.repository.increment(where, key, incrementBy)
-    return this.repository.find(where)
+    return this.repository.find({ where })
   }
 
   protected async toFindOptionsWhere(
