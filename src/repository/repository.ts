@@ -88,7 +88,7 @@ export class Repository<Entity extends ObjectLiteral> {
       typeof queryOrCallback === 'function'
         ? queryOrCallback(new PaginatedQuery(this))
         : queryOrCallback
-    if (Object.keys(query.toQuery().order ?? {}).length) {
+    if (!Object.keys(query.toQuery().order ?? {}).length) {
       query = query.orderByAscending('id' as any)
     }
     const options = query.toQuery()
