@@ -1,8 +1,10 @@
+import { ClassType } from 'tsds-tools'
 import { container } from 'tsyringe'
 import { DataSource, DataSourceOptions } from 'typeorm'
+import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
+import { resolveRepositories } from '../repository-resolver'
 import { RepositorySubscriber } from '../repository/repository-subscriber'
 import { withRetry } from './with-retry'
-import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 
 const DEFAULT_RETRY = 100
 const DEFAULT_WAIT_IN_MS = 5 * 1000
@@ -20,6 +22,7 @@ const {
 export type InitializeDataSourceOptions = Partial<PostgresConnectionOptions> & {
   retry?: number
   waitInMs?: number
+  repositories?: Array<string | ClassType<any>>
 }
 
 export async function initializeDataSource(options: InitializeDataSourceOptions = {}) {
@@ -34,6 +37,17 @@ export async function initializeDataSource(options: InitializeDataSourceOptions 
     subscribers: [RepositorySubscriber, ...(options.subscribers ?? ([] as any))],
     ...((options as any) ?? {}),
   }
+  const repos =
+    options.repositories ?? options.entities instanceof Array
+      ? (options.entities as any)
+          ?.map((i: string) =>
+            typeof i === 'string'
+              ? i.replace('/*-schema.{ts,js}', '/*-repository.{ts,js}')
+              : undefined,
+          )
+          .filter((i: string) => !!i)
+      : undefined
+  await resolveRepositories(repos)
   const dataSource = new DataSource(dataSourceOptions)
   await withRetry(() => dataSource.initialize(), {
     retry: options?.retry ?? DEFAULT_RETRY,

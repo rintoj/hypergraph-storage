@@ -42,8 +42,7 @@ export async function resolveRepositories(
       registerRepository(path.name, path)
       continue
     }
-    const filePaths = path.replace('/*-schema.{ts,js}', '/*-repository.{ts,js}')
-    const files = sync(filePaths)
+    const files = sync(path)
     const repositories = await Promise.all(files?.map(path => import(path)) ?? [])
     repositories.map(repoFile =>
       Object.keys(repoFile).forEach(repositoryName =>
