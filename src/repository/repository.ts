@@ -84,13 +84,10 @@ export class Repository<Entity extends ObjectLiteral> {
       | PaginatedQuery<Entity>
       | ((query: PaginatedQuery<Entity>) => PaginatedQuery<Entity>),
   ): Promise<PaginatedResult<Entity>> {
-    let query =
+    const query =
       typeof queryOrCallback === 'function'
         ? queryOrCallback(new PaginatedQuery(this))
         : queryOrCallback
-    if (!Object.keys(query.toQuery().order ?? {}).length) {
-      query = query.orderByAscending('id' as any)
-    }
     const options = query.toQuery()
     const items = await this.repository.find(options)
     if (!items.length || (options.take && items.length < options.take)) {
