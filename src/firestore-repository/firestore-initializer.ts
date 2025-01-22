@@ -1,5 +1,6 @@
 import 'reflect-metadata'
 
+import { Bucket, Storage } from '@google-cloud/storage'
 import * as admin from 'firebase-admin'
 import { container } from 'tsyringe'
 
@@ -10,30 +11,31 @@ export const { FieldValue } = admin.firestore
 
 export type InitializeFirestoreOptions = {
   serviceAccountConfig?: string
+  storageBucket?: string
 }
 
 export async function initializeFirestore(options: InitializeFirestoreOptions = {}) {
-  const serviceAccountConfig = options.serviceAccountConfig ?? process.env.SERVICE_ACCOUNT_CONFIG
-  if (serviceAccountConfig) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const config = require(serviceAccountConfig)
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: config.project_id,
-        privateKey: config.private_key,
-        clientEmail: config.client_email,
-      }),
-    })
-  } else {
-    // auto resolved from Google Cloud
-    admin.initializeApp()
-  }
+  const { serviceAccountConfig, storageBucket } = options
+  admin.initializeApp({
+    // {} will work of GOOGLE_APPLICATION_CREDENTIALS is set in the environment
+    ...(serviceAccountConfig ? { credential: admin.credential.cert(serviceAccountConfig) } : {}),
 
+    // if storageBucket is not provided, it will be inferred from the service account config
+    ...(storageBucket ? { storageBucket } : {}),
+  })
   const firestore = admin.firestore()
+  firestore.settings({ ignoreUndefinedProperties: true })
   container.registerInstance(FIRESTORE_INSTANCE, firestore)
-  return firestore
+  if (storageBucket) {
+    const storage = new Storage()
+    container.registerInstance(Bucket, storage.bucket(storageBucket))
+  }
 }
 
 export function resolveFirestore(): admin.firestore.Firestore {
   return container.resolve(FIRESTORE_INSTANCE)
+}
+
+export function getDefaultStorageBucket() {
+  return container.resolve(Bucket)
 }

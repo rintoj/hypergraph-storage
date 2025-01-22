@@ -60,6 +60,7 @@
     "ts-jest": "^29.0.0"
   },
   "peerDependencies": {
+    "@google-cloud/storage": "^7.15.0",
     "@nestjs/common": "^11.0.4",
     "firebase-admin": "^11.10.1"
   },

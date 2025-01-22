@@ -3,7 +3,7 @@ import { ClassType } from 'tsds-tools'
 import { ObjectLiteral } from 'typeorm'
 import { FirestoreRepository } from '../firestore-repository'
 import { Repository as TypeORMRepository } from '../repository'
-import { RepositoryType, StorageModuleOptions } from './storage.types'
+import { RepositoryType, STORAGE_MODULE_OPTIONS, StorageModuleOptions } from './storage.types'
 
 function toRepositoryToken<T extends ObjectLiteral>(model: T) {
   return `${model.name}Repository`
@@ -21,7 +21,7 @@ export function createRepository<T extends ObjectLiteral>(model: ClassType<T>) {
         ? new FirestoreRepository(model)
         : new TypeORMRepository(model)
     },
-    inject: [StorageModuleOptions],
+    inject: [STORAGE_MODULE_OPTIONS],
   }
 }
 
