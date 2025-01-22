@@ -3,6 +3,15 @@
 - [Hypergraph Storage](#hypergraph-storage)
   - [Install](#install)
   - [Usage](#usage)
+  - [Usage with NestJS (Recommended)](#usage-with-nestjs-recommended)
+    - [Step 1: Configure the `StorageModule` as a Root Module](#step-1-configure-the-storagemodule-as-a-root-module)
+    - [Step 2: Configure Entities in Feature Modules](#step-2-configure-entities-in-feature-modules)
+    - [Step 3: Use Repositories in Your Services](#step-3-use-repositories-in-your-services)
+  - [Usage without NestJS](#usage-without-nestjs)
+    - [Step 1: Initialize the Data Source](#step-1-initialize-the-data-source)
+    - [Step 2: Define a Repository Class](#step-2-define-a-repository-class)
+    - [Step 3: Get an Instance of the Repository](#step-3-get-an-instance-of-the-repository)
+    - [Step 4: Use Dependency Injection with Libraries like `tsyringe`](#step-4-use-dependency-injection-with-libraries-like-tsyringe)
   - [Fetch Records](#fetch-records)
     - [find](#find)
     - [findById](#findbyid)
@@ -23,6 +32,11 @@
   - [Increment](#increment)
   - [Delete \& Restore](#delete--restore)
   - [Using with Cloud Firestore](#using-with-cloud-firestore)
+    - [Using with NestJS](#using-with-nestjs)
+      - [Key Points:](#key-points)
+    - [Using without NestJS](#using-without-nestjs)
+      - [Key Points:](#key-points-1)
+    - [Additional Notes](#additional-notes)
     - [Queries](#queries)
     - [Modification API](#modification-api)
   - [Using Cache](#using-cache)
@@ -115,73 +129,163 @@ class User {
 }
 ```
 
-Define repository class
+## Usage with NestJS (Recommended)
+
+To integrate the `StorageModule` into your NestJS application effectively, follow the steps below.
+The `StorageModule` provides a convenient way to manage repositories and entities within your NestJS
+ecosystem. For more information on NestJS modules, refer to the
+[NestJS Module Documentation](https://docs.nestjs.com/modules).
+
+### Step 1: Configure the `StorageModule` as a Root Module
+
+Begin by setting up the `StorageModule` in your root module (commonly `AppModule`). This
+configuration initializes the storage layer and connects to the database using parameters from your
+environment configuration:
 
 ```ts
-class UserRepository extends Repository<User> {
-  constructor() {
-    super(User)
+import { Module } from '@nestjs/common'
+import { StorageModule, RepositoryType } from '@hgraph/storage/nestjs'
+import { AppController } from './app.controller'
+import { UserModule } from './user/user.module'
+import { AuthModule } from './auth/auth.module'
+import config from './config'
+
+@Module({
+  imports: [
+    StorageModule.forRoot({
+      repositoryType: RepositoryType.TypeORM, // Specify the repository type (e.g., TypeORM).
+      url: config.DATABASE_URL, // Database connection URL.
+      type: config.DATABASE_TYPE as any, // Database type (e.g., PostgreSQL, MySQL).
+      synchronize: config.DB_SYNCHRONIZE, // Synchronize schema with the database.
+    }),
+    UserModule, // Import your feature modules.
+    AuthModule,
+  ],
+  controllers: [AppController],
+})
+export class AppModule {}
+```
+
+### Step 2: Configure Entities in Feature Modules
+
+Each feature module should declare its entities to be managed by the `StorageModule`. This ensures
+that the necessary database schema and repository are available within the scope of the feature
+module:
+
+```ts
+import { Module } from '@nestjs/common'
+import { StorageModule } from '@hgraph/storage/nestjs'
+import { User } from './user.entity'
+
+@Module({
+  imports: [StorageModule.forFeature([User])], // Declare entities specific to this module.
+})
+export class CustomModule {}
+```
+
+### Step 3: Use Repositories in Your Services
+
+Once the `StorageModule` is configured, you can inject repositories into your services using the
+`@InjectRepo` decorator. This simplifies access to your database operations:
+
+```ts
+import { Injectable } from '@nestjs/common'
+import { InjectRepo, Repository } from '@hgraph/storage/nestjs'
+import { User } from './user.entity'
+
+@Injectable()
+export class UserService {
+  constructor(
+    @InjectRepo(User) // Inject the repository for the User entity.
+    private readonly userRepository: Repository<User>,
+  ) {}
+
+  // Example method for retrieving all users.
+  async findAll(): Promise<User[]> {
+    return this.userRepository.find()
   }
 }
 ```
 
-Initialize the data source
+By following these steps, you can seamlessly manage your application’s data layer using the
+`StorageModule` while adhering to NestJS’s modular architecture.
+
+## Usage without NestJS
+
+To use this library independently of NestJS, follow these steps to initialize your data source,
+configure repositories, and integrate dependency injection if required.
+
+### Step 1: Initialize the Data Source
+
+You can initialize the data source programmatically using the `initializeDataSource` function.
+Specify the database type, connection URL, and synchronization settings:
 
 ```ts
+import { initializeDataSource } from '@hgraph/storage'
+
 await initializeDataSource({
-  type: 'postgres',
-  host: 'localhost',
-  port: 5432,
-  database: 'test',
-  username: 'postgres',
-  password: '',
-  entities: [User],
-  synchronize: true,
+  type: process.env.DATABASE_TYPE as any, // Specify the database type (e.g., postgres, mysql).
+  url: process.env.DATABASE_URL, // Database connection URL.
+  synchronize: process.env.DB_SYNCHRONIZE, // Synchronize schema with the database.
 })
 ```
 
-Or you can use environment variables
+Alternatively, use environment variables to configure the database connection. This approach
+simplifies deployment and avoids hardcoding sensitive information:
 
 ```sh
-DB_TYPE: postgres
-DB_HOST: localhost
-DB_PORT: "5432"
-DB_NAME: test
-DB_USER: postgres
-DB_PASSWORD:
-DB_SYNCHRONIZE: "true"
+DATABASE_TYPE=postgres
+DATABASE_URL=<database_type>://<username>:<password>@<host>:<port>/<database_name>
+DATABASE_SYNCHRONIZE="true"
 ```
 
-and then initialize
+Then initialize the data source with the specified entities:
 
 ```ts
 await initializeDataSource({
-  entities: [User],
+  entities: [User], // Declare your application entities.
 })
-
-// or use
-
-await initializeDataSource({
-  entities: [`${__dirname}/**/*-entity.{ts,js}`],
-})
-await
 ```
 
-Get instance of the user repository.
+### Step 2: Define a Repository Class
+
+Create a custom repository class for managing your entities. This class extends the base
+`Repository` class and specifies the entity type:
+
+```ts
+import { Repository } from '@hgraph/storage'
+import { User } from './user.entity'
+
+class UserRepository extends Repository<User> {
+  constructor() {
+    super(User) // Initialize the repository with the User entity.
+  }
+}
+```
+
+### Step 3: Get an Instance of the Repository
+
+To interact with the `UserRepository`, create an instance of the repository. This allows you to
+perform database operations:
 
 ```ts
 const userRepository = new UserRepository()
 ```
 
-If you are using dependency injection library like
-[`tsyringe`](https://www.npmjs.com/package/tsyringe) use the following. This works best for us when
-using it with GraphQL's per query cache.
+### Step 4: Use Dependency Injection with Libraries like `tsyringe`
+
+If you’re using a dependency injection library such as
+[`tsyringe`](https://www.npmjs.com/package/tsyringe), you can manage repository instances
+efficiently. This approach is especially useful for caching and GraphQL integrations:
 
 ```ts
 import { container } from 'tsyringe'
 
-const userRepository = container.resolve(UserRepository)
+const userRepository = container.resolve(UserRepository) // Resolve the repository from the DI container.
 ```
+
+By following these steps, you can configure and use the this library outside of a NestJS application
+while maintaining flexibility and scalability.
 
 ## Fetch Records
 
@@ -498,26 +602,91 @@ await userRepository.restore('user1') // restore by id
 await userRepository.restore(query => query.whereEqualTo('verified', false)) // restore by query
 ```
 
+---
+
 ## Using with Cloud Firestore
 
-This library comes with support for [firestore](https://firebase.google.com/docs/firestore), however
-you will have to initialize the datasource and repositories as show below. Most of the APIs are
-compatible with each other.
+This library offers robust support for
+[Cloud Firestore](https://firebase.google.com/docs/firestore), making it easier to integrate with
+your applications. Whether you are using NestJS or a standalone setup, this guide will walk you
+through the initialization process and demonstrate how to configure the data source and repositories
+for seamless integration. Most APIs provided by this library are designed to be compatible with each
+other, ensuring a consistent development experience.
 
-```ts
+### Using with NestJS
+
+If you're working with NestJS, integrating this library is straightforward. The following example
+demonstrates how to set up the `StorageModule` with Firestore as the repository type. Ensure you
+have your Firebase service account configuration and storage bucket details ready:
+
+```typescript
+import { Module } from '@nestjs/common'
+import { StorageModule, RepositoryType } from '@hgraph/storage'
+import { UserModule } from './user/user.module'
+import { AuthModule } from './auth/auth.module'
+import { AppController } from './app.controller'
+
+@Module({
+  imports: [
+    StorageModule.forRoot({
+      repositoryType: RepositoryType.Firestore, // Specify Firestore as the repository type
+      serviceAccountConfig: process.env.FIREBASE_SERVICE_ACCOUNT, // Path or JSON object containing your service account details
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET, // Optional: Specify your Firebase Storage bucket
+    }),
+    UserModule, // Import additional modules as needed
+    AuthModule,
+  ],
+  controllers: [AppController], // Define application controllers
+})
+export class AppModule {}
+```
+
+#### Key Points:
+
+- Replace `process.env.FIREBASE_SERVICE_ACCOUNT` with the appropriate path or JSON content for your
+  Firebase service account.
+- The `storageBucket` parameter is optional but can be included if your application uses Firebase
+  Storage.
+
+### Using without NestJS
+
+For non-NestJS applications, you can initialize the Firestore data source and define repositories
+directly. This provides flexibility for various use cases:
+
+```typescript
 import { initializeFirestore, FirestoreRepository } from '@hgraph/storage'
 
+// Initialize Firestore with service account configuration
 await initializeFirestore({
-  serviceAccountConfig: 'string', // path to the file where service account config (JSON) is placed
+  serviceAccountConfig: 'string', // Path to the JSON file containing your service account configuration
 })
 
-// and create repositories from
+// Define a repository for a specific entity
 export class UserRepository extends FirestoreRepository<UserEntity> {
   constructor() {
-    super(UserEntity)
+    super(UserEntity) // Pass the entity class to the repository
   }
 }
 ```
+
+#### Key Points:
+
+- Ensure the `serviceAccountConfig` points to a valid Firebase service account JSON file.
+- Extend `FirestoreRepository` to create custom repositories for your entities, making it easier to
+  manage Firestore collections.
+
+### Additional Notes
+
+- Ensure you have installed the necessary Firebase SDK and dependencies before proceeding.
+- Always validate your service account credentials and configurations to avoid runtime errors.
+- For more advanced usage, refer to the library’s API documentation and Firestore’s official
+  guidelines.
+
+```sh
+npm install firebase-admin
+```
+
+---
 
 ### Queries
 
