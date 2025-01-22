@@ -8,8 +8,8 @@ import { AlbumEntity, PhotoEntity, UserEntity, UserRole } from '../entity'
 import { UserProfileEntity } from '../entity/user-profile-entity'
 import { Query } from '../query'
 import { PaginatedQuery } from '../query/query'
-import { MockTypeORMDataSource, initializeMockDataSource } from '../typeorm-mock'
 import data from '../test/data.json'
+import { MockTypeORMDataSource, initializeMockDataSource } from '../typeorm-mock'
 
 function omit<T extends Record<any, any>>(
   target: T | null | undefined,
@@ -52,7 +52,7 @@ describe('Repository', () => {
     dataSource = await initializeMockDataSource({
       type: 'postgres',
       database: 'hypergraph-local',
-      entities: [`${__dirname}/../entity/**/*.{ts,js}`],
+      entities: [AlbumEntity, PhotoEntity, UserEntity, UserProfileEntity],
       synchronize: false,
       retry: 0,
     })
