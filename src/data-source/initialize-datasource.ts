@@ -19,9 +19,10 @@ const {
   DB_SYNCHRONIZE = 'true',
 } = process.env
 
-export type InitializeDataSourceOptions = Partial<PostgresConnectionOptions> & {
+export type InitializeDataSourceOptions = Partial<Omit<PostgresConnectionOptions, 'entities'>> & {
   retry?: number
   waitInMs?: number
+  entities?: ClassType<any>[]
   repositories?: Array<string | ClassType<any>>
 }
 
