@@ -10,13 +10,14 @@ const DEFAULT_RETRY = 100
 const DEFAULT_WAIT_IN_MS = 5 * 1000
 
 const {
-  DB_TYPE = 'postgres',
-  DB_HOST = 'localhost',
-  DB_PORT = '5432',
-  DB_NAME = 'hypergraphlocal',
-  DB_USER = 'postgres',
-  DB_PASSWORD,
-  DB_SYNCHRONIZE = 'true',
+  DATABASE_TYPE = 'postgres',
+  DATABASE_HOST = 'localhost',
+  DATABASE_PORT = '5432',
+  DATABASE_NAME = 'hypergraphlocal',
+  DATABASE_USER = 'postgres',
+  DATABASE_PASSWORD,
+  DATABASE_SYNCHRONIZE = 'true',
+  DATABASE_URL,
 } = process.env
 
 export type InitializeDataSourceOptions = Partial<Omit<PostgresConnectionOptions, 'entities'>> & {
@@ -28,13 +29,14 @@ export type InitializeDataSourceOptions = Partial<Omit<PostgresConnectionOptions
 
 export async function initializeDataSource(options: InitializeDataSourceOptions = {}) {
   const dataSourceOptions: DataSourceOptions = {
-    type: (options.type ?? DB_TYPE) as 'postgres',
-    host: options.host ?? DB_HOST,
-    port: options.port ?? parseInt(DB_PORT),
-    database: options.database ?? DB_NAME,
-    username: options.username ?? DB_USER,
-    password: options.password ?? DB_PASSWORD,
-    synchronize: options.synchronize ?? DB_SYNCHRONIZE === 'true',
+    type: (options.type ?? DATABASE_TYPE) as 'postgres',
+    host: options.host ?? DATABASE_HOST,
+    port: options.port ?? parseInt(DATABASE_PORT),
+    url: options.url ?? DATABASE_URL,
+    database: options.database ?? DATABASE_NAME,
+    username: options.username ?? DATABASE_USER,
+    password: options.password ?? DATABASE_PASSWORD,
+    synchronize: options.synchronize ?? DATABASE_SYNCHRONIZE === 'true',
     subscribers: [RepositorySubscriber, ...(options.subscribers ?? ([] as any))],
     ...((options as any) ?? {}),
   }

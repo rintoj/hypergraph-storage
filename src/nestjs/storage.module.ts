@@ -7,9 +7,10 @@ import {
   STORAGE_MODULE_OPTIONS,
   StorageModuleOptions,
 } from './storage.types'
+import { createRepository } from './storage.utils'
 
 @Module({})
-export class FeatureModule {}
+export class StorageFeatureModule {}
 
 @Module({})
 export class StorageModule implements OnApplicationBootstrap {
@@ -26,10 +27,14 @@ export class StorageModule implements OnApplicationBootstrap {
   }
 
   static forFeature(entities: ClassType<any>[]) {
-    entities.map(entity => StorageModule.entities.add(entity))
+    const repositoryProviders = entities.map(entity => {
+      StorageModule.entities.add(entity)
+      return createRepository(entity)
+    })
     return {
-      module: FeatureModule,
-      providers: [],
+      module: StorageFeatureModule,
+      providers: repositoryProviders,
+      exports: repositoryProviders,
     }
   }
 
