@@ -133,18 +133,19 @@ export class FirestoreRepository<Entity extends ObjectLiteral> {
 
   protected toDBRecord(entity: DeepPartial<Entity>) {
     const propertiesToOmit: string[] = []
+    const dataObject: any = entity
     const relationIds = this.relations.reduce((relationIds, relation) => {
       const key = relation.propertyName + 'Id'
       propertiesToOmit.push(relation.propertyName)
-      return { ...relationIds, [key]: entity[relation.propertyName]?.id ?? entity[key] }
+      return { ...relationIds, [key]: dataObject[relation.propertyName]?.id ?? dataObject[key] }
     }, {})
     return replaceUndefinedWithNull({
       ...this.defaultProps,
       ...omit(entity, propertiesToOmit),
       ...relationIds,
-      version: (entity.version ?? 0) + 1,
-      createdAt: entity.createdAt ?? Date.now(),
-      updatedAt: Date.now(),
+      version: (dataObject.version ?? 0) + 1,
+      createdAt: dataObject.createdAt ?? new Date(),
+      updatedAt: new Date(),
     })
   }
 

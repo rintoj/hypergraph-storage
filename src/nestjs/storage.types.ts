@@ -15,6 +15,10 @@ interface FirestoreStorageModuleOptions extends InitializeFirestoreOptions {
   repositoryType: RepositoryType.Firestore
 }
 
+interface FirestoreStorageModuleForTestOptions {
+  repositoryType: RepositoryType.Firestore
+}
+
 interface TypeORMStorageModuleOptions extends InitializeDataSourceOptions {
   repositoryType: RepositoryType.TypeORM
 }
@@ -32,4 +36,8 @@ export function isTypeORMStorageModuleOptions(
 }
 
 export const STORAGE_MODULE_OPTIONS = 'STORAGE_MODULE_OPTIONS'
+export const TEST_MODE = 'TEST_MODE'
 export type StorageModuleOptions = FirestoreStorageModuleOptions | TypeORMStorageModuleOptions
+export type StorageModuleForTestOptions =
+  | FirestoreStorageModuleForTestOptions
+  | TypeORMStorageModuleOptions
