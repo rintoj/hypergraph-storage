@@ -2,8 +2,6 @@ import { DynamicModule, Inject, Module, OnApplicationBootstrap, Provider } from 
 import { ClassType } from 'tsds-tools'
 import { initializeDataSource } from '../data-source'
 import { initializeFirestore } from '../firestore-repository'
-import { initializeMockFirestore } from '../firestore-repository/firestore-mock'
-import { initializeMockDataSource } from '../typeorm-mock'
 import {
   isTypeORMStorageModuleOptions,
   STORAGE_MODULE_OPTIONS,
@@ -21,7 +19,10 @@ export class StorageModule implements OnApplicationBootstrap {
   static readonly entities = new Set<any>()
 
   static forRoot(options: StorageModuleOptions): DynamicModule {
-    const providers: Provider[] = [{ provide: STORAGE_MODULE_OPTIONS, useValue: options }]
+    const providers: Provider[] = [
+      { provide: STORAGE_MODULE_OPTIONS, useValue: options },
+      { provide: TEST_MODE, useValue: false },
+    ]
     return {
       module: StorageModule,
       global: true,
@@ -64,6 +65,7 @@ export class StorageModule implements OnApplicationBootstrap {
     if (isTypeORMStorageModuleOptions(this.options)) {
       const entities = [...(this.options.entities ?? []), ...StorageModule.entities]
       if (this.isTestMode) {
+        const { initializeMockDataSource } = await import('../typeorm-mock')
         return await initializeMockDataSource({ ...this.options, entities })
       }
       await initializeDataSource({
@@ -72,6 +74,7 @@ export class StorageModule implements OnApplicationBootstrap {
       })
     } else {
       if (this.isTestMode) {
+        const { initializeMockFirestore } = await import('../firestore-repository/firestore-mock')
         return await initializeMockFirestore()
       }
       await initializeFirestore(this.options)
