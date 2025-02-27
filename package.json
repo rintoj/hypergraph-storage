@@ -61,7 +61,12 @@
   },
   "peerDependencies": {
     "@google-cloud/storage": "^7.15.0",
-    "@nestjs/common": "^11.0.4",
+    "@nestjs/common": ">=10.0.0 <12.0.0",
+    "firebase-admin": "^11.10.1"
+  },
+  "optionalDependencies": {
+    "@google-cloud/storage": "^7.15.0",
+    "@nestjs/common": ">=10.0.0 <12.0.0",
     "firebase-admin": "^11.10.1"
   },
   "jest": {
