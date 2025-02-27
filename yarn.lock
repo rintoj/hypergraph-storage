@@ -878,10 +878,10 @@
     "@mikro-orm/knex" "^4.5.10"
     pg "8.6.0"
 
-"@nestjs/common@^11.0.4":
-  version "11.0.4"
-  resolved "https://registry.yarnpkg.com/@nestjs/common/-/common-11.0.4.tgz#c5619e3be9f5a9dfe9e3453ca5f5b15576917b27"
-  integrity sha512-KVNOFe445VZeoegSPWmAytDO/VwvrKfUNjS3IivMYsUaM0F54r/C5oyvBF3rmQlTeEsIUfpaHEr+zFkYnt3ZKA==
+"@nestjs/common@>=10.0.0 <12.0.0":
+  version "11.0.10"
+  resolved "https://registry.yarnpkg.com/@nestjs/common/-/common-11.0.10.tgz#c300168171896d0ae7d189e5237ab6c30d1b64ef"
+  integrity sha512-pzGXp14KF2Q4CDZGQgPK4l8zEg7i6cNkb+10yc8ZA5K41cLe3ZbWW1YxtY2e/glHauOJwTLSVjH4tiRVtOTizg==
   dependencies:
     uid "2.0.2"
     iterare "1.2.1"
