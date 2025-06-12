@@ -3,7 +3,6 @@ import { container } from 'tsyringe'
 import { DataSource, DataSourceOptions } from 'typeorm'
 import { PostgresConnectionOptions } from 'typeorm/driver/postgres/PostgresConnectionOptions'
 import { resolveRepositories } from '../repository-resolver'
-import { RepositorySubscriber } from '../repository/repository-subscriber'
 import { withRetry } from './with-retry'
 
 const DEFAULT_RETRY = 100
@@ -37,7 +36,7 @@ export async function initializeDataSource(options: InitializeDataSourceOptions 
     username: options.username ?? DATABASE_USER,
     password: options.password ?? DATABASE_PASSWORD,
     synchronize: options.synchronize ?? DATABASE_SYNCHRONIZE === 'true',
-    subscribers: [...(options.subscribers ?? ([] as any))],
+    subscribers: options.subscribers ?? ([] as any),
     ...((options as any) ?? {}),
   }
   const repos =
