@@ -37,7 +37,7 @@ export async function initializeDataSource(options: InitializeDataSourceOptions 
     username: options.username ?? DATABASE_USER,
     password: options.password ?? DATABASE_PASSWORD,
     synchronize: options.synchronize ?? DATABASE_SYNCHRONIZE === 'true',
-    subscribers: [RepositorySubscriber, ...(options.subscribers ?? ([] as any))],
+    subscribers: [...(options.subscribers ?? ([] as any))],
     ...((options as any) ?? {}),
   }
   const repos =
