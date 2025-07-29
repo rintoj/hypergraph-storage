@@ -58,6 +58,6 @@ export async function initializeDataSource(options: InitializeDataSourceOptions 
       console.log(`(${retry} more attempts) trying to reconnect to database!`, dataSourceOptions),
   })
   container.registerInstance(DataSource, dataSource)
-  if (typeof jest === 'undefined') console.log('Initialized database')
+  
   return dataSource
 }
