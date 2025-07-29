@@ -129,7 +129,7 @@ export class Repository<Entity extends ObjectLiteral> {
   async update(entity: PartialEntityWithId<Entity>): Promise<Entity> {
     const record = await this.findById(entity.id)
     if (!record) throw new Error(`No such ${this.entity.name} of id '${entity.id}'`)
-    await this.repository.update(entity.id, entity)
+    await this.repository.update(entity.id, { ...entity, id: undefined })
     return { ...record, ...entity }
   }
 

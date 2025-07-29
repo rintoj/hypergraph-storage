@@ -95,7 +95,8 @@ export function createRepositoryWithCache<
     }
 
     async save(entity: DeepPartial<Entity>): Promise<Entity> {
-      if (entity[property]) this.loader.clear(entity[property])
+      const id = entity[property] as string | undefined
+      if (id) this.loader.clear(id)
       return this.withCache(super.save(entity))
     }
 
@@ -104,13 +105,15 @@ export function createRepositoryWithCache<
       options?: { chunk?: number },
     ): Promise<Entity[]> {
       for (const entity of entities) {
-        if (entity?.[property]) this.loader.clear(entity[property])
+        const id = entity?.[property] as string | undefined
+        if (id) this.loader.clear(id)
       }
       return this.withCacheMany(super.saveMany(entities, options))
     }
 
     async update(entity: PartialEntityWithId<Entity>): Promise<Entity> {
-      if (entity[property]) this.loader.clear(entity[property])
+      const id = entity[property] as string | undefined
+      if (id) this.loader.clear(id)
       return this.withCache(super.update(entity))
     }
 
@@ -119,14 +122,18 @@ export function createRepositoryWithCache<
       if (!where) return []
       const records = await this.repository.find(where)
       for (const record of records) {
-        if (record?.[property]) this.loader.clear(record[property])
+        const id = record?.[property] as string | undefined
+        if (id) this.loader.clear(id)
       }
       return this.withCacheMany(super.updateMany(query, entity))
     }
 
     async delete(query: IdsOrQuery<Entity>, options?: DeleteOptions): Promise<Entity[]> {
       const records = await super.delete(query, options)
-      records.map(record => record?.[property] && this.loader.clear(record[property]))
+      records.map(record => {
+        const id = record?.[property] as string | undefined
+        if (id) this.loader.clear(id)
+      })
       return records
     }
 
