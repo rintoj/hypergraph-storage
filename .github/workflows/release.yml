@@ -25,6 +25,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org/' # Needed for npm publish
       - run: npm install # Use npm install instead of yarn for consistency with npm commands
       - run: npm run build
+      - run: npm test
       - name: Bump version and publish
         run: |
           git fetch --tags
