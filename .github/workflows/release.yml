@@ -3,7 +3,7 @@ name: Release npm package
 on:
   push:
     branches:
-      - master
+      - main
 
 concurrency:
   group: release-${{ github.ref }}
