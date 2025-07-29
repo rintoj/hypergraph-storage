@@ -27,7 +27,21 @@ jobs:
       - run: npm run build
       - name: Bump version and publish
         run: |
-          npm version patch
+          git fetch --tags
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            echo "No previous tag found. Defaulting to minor bump."
+            BUMP_TYPE="minor"
+          else
+            COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:%s)
+            if echo "$COMMITS" | grep -q "feat:"; then
+              BUMP_TYPE="minor"
+            else
+              BUMP_TYPE="patch"
+            fi
+            echo "Determined bump type: $BUMP_TYPE"
+          fi
+          npm version $BUMP_TYPE
           npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # Use NODE_AUTH_TOKEN for npm publish
