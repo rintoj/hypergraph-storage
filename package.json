@@ -19,8 +19,7 @@
     "lint": "eslint --fix && tsc -p . --noEmit && yarn prettier",
     "prettier": "prettier --write \"**/src/**/*.{ts,tsx}\" -c",
     "build": "rimraf dist && tsc -p .",
-    "semantic-release": "semantic-release"
-  },
+    },
   "license": "MIT",
   "private": false,
   "dependencies": {
@@ -56,7 +55,6 @@
     "pg-mem": "^2.6.12",
     "prettier": "^2.7.1",
     "rimraf": "^5.0.1",
-    "semantic-release": "^21.0.5",
     "ts-jest": "^29.0.0"
   },
   "peerDependencies": {
@@ -98,10 +96,4 @@
       "!**/src/error/**",
       "!**/test/**"
     ]
-  },
-  "release": {
-    "branches": [
-      "master"
-    ]
   }
-}
