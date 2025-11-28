@@ -9,11 +9,7 @@ import {
   toPaginationToken,
 } from '../pagination'
 import { DEFAULT_PAGE_SIZE, isQuery, Query, QueryWithWhere } from '../query'
-import {
-  PaginatedQuery,
-  TerminalPaginatedQuery,
-  TerminalQuery,
-} from '../query/query'
+import { PaginatedQuery, TerminalPaginatedQuery, TerminalQuery } from '../query/query'
 
 export type EntityWithOptionalId<Entity> = Omit<Entity, 'id'> & { id?: string }
 export type PartialEntityWithId<Entity> = DeepPartial<Entity> & { id: string }
@@ -78,7 +74,9 @@ export class Repository<Entity extends ObjectLiteral> {
     queryOrCallback?:
       | PaginatedQuery<Entity>
       | TerminalPaginatedQuery<Entity>
-      | ((query: PaginatedQuery<Entity>) => PaginatedQuery<Entity> | TerminalPaginatedQuery<Entity>),
+      | ((
+          query: PaginatedQuery<Entity>,
+        ) => PaginatedQuery<Entity> | TerminalPaginatedQuery<Entity>),
     filter?: PaginationFilter<Entity>,
     onPage?: OnPageLoad<Entity>,
   ): Promise<Entity[]> {
@@ -93,7 +91,9 @@ export class Repository<Entity extends ObjectLiteral> {
     queryOrCallback:
       | PaginatedQuery<Entity>
       | TerminalPaginatedQuery<Entity>
-      | ((query: PaginatedQuery<Entity>) => PaginatedQuery<Entity> | TerminalPaginatedQuery<Entity>),
+      | ((
+          query: PaginatedQuery<Entity>,
+        ) => PaginatedQuery<Entity> | TerminalPaginatedQuery<Entity>),
   ): Promise<PaginatedResult<Entity>> {
     const query =
       typeof queryOrCallback === 'function'
@@ -191,8 +191,8 @@ export class Repository<Entity extends ObjectLiteral> {
     const where = hasToQuery(queryOrId)
       ? queryOrId.toQuery().where
       : queryOrId instanceof Array
-        ? new QueryWithWhere(this).whereIn('id' as any, queryOrId as any[]).toQuery().where
-        : new QueryWithWhere(this).whereEqualTo('id' as any, queryOrId as any).toQuery().where
+      ? new QueryWithWhere(this).whereIn('id' as any, queryOrId as any[]).toQuery().where
+      : new QueryWithWhere(this).whereEqualTo('id' as any, queryOrId as any).toQuery().where
     if (!where) throw new Error('Invalid query: no WHERE condition!')
     if (hasToQuery(queryOrId) && where instanceof Array) {
       const items = await paginate(next =>

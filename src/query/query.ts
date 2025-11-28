@@ -126,11 +126,7 @@ export class TerminalQuery<Entity extends ObjectLiteral> {
  */
 export class TerminalPaginatedQuery<Entity extends ObjectLiteral> extends TerminalQuery<Entity> {
   static from<Entity extends ObjectLiteral>(
-    source:
-      | QueryWithWhere<Entity>
-      | Query<Entity>
-      | PaginatedQuery<Entity>
-      | TerminalQuery<Entity>,
+    source: QueryWithWhere<Entity> | Query<Entity> | PaginatedQuery<Entity> | TerminalQuery<Entity>,
   ): TerminalPaginatedQuery<Entity> {
     const newQuery = new TerminalPaginatedQuery(source.repository)
     newQuery.query = source.toQuery()

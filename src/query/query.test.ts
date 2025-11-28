@@ -329,9 +329,9 @@ describe('Query', () => {
   describe('Terminal Query Enforcement', () => {
     it('should throw error when whereIn is used inside whereJoin', () => {
       const repo = new UserRepository()
-      expect(() =>
-        new Query(repo).whereJoin('photos', q => q.whereIn('id', ['1', '2'])),
-      ).toThrow('whereIn() cannot be used inside whereJoin()')
+      expect(() => new Query(repo).whereJoin('photos', q => q.whereIn('id', ['1', '2']))).toThrow(
+        'whereIn() cannot be used inside whereJoin()',
+      )
     })
 
     it('should throw error when whereIn is used inside whereOr', () => {
