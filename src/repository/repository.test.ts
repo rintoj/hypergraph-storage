@@ -6,7 +6,7 @@ import { container } from 'tsyringe'
 import { Repository } from '.'
 import { AlbumEntity, PhotoEntity, UserEntity, UserRole } from '../entity'
 import { UserProfileEntity } from '../entity/user-profile-entity'
-import { Query } from '../query'
+import { Query, TerminalPaginatedQuery } from '../query'
 import { PaginatedQuery } from '../query/query'
 import data from '../test/data.json'
 import { MockTypeORMDataSource, initializeMockDataSource } from '../typeorm-mock'
@@ -235,7 +235,8 @@ describe('Repository', () => {
 
   test('should fetch a users by whereIn query', async () => {
     const repository = container.resolve(UserProfileRepository)
-    const result = await repository.find(new PaginatedQuery(repository).whereIn('age', [64, 73]))
+    const terminalQuery = new PaginatedQuery(repository).whereIn('age', [64, 73])
+    const result = await repository.find(TerminalPaginatedQuery.from(terminalQuery))
     expect(result.items.length).toEqual(
       data.users.filter(user => [64, 73].includes(user.profile?.age ?? 0)).length,
     )
@@ -287,27 +288,24 @@ describe('Repository', () => {
 
   test('should fetch a users by whereOr query', async () => {
     const repository = container.resolve(UserProfileRepository)
-    const result = await repository.find(
-      new Query(repository).whereOr(
-        q => q.whereEqualTo('age', 48),
-        q => q.whereEqualTo('age', 64),
-      ),
+    const terminalQuery = new Query(repository).whereOr(
+      q => q.whereEqualTo('age', 48),
+      q => q.whereEqualTo('age', 64),
     )
+    const result = await repository.find(TerminalPaginatedQuery.from(terminalQuery))
     expect(result.items.length).toEqual(
       data.users.filter(user => [48, 64].includes(user.profile?.age ?? 0)).length,
     )
   })
 
-  test('should fetch a users by whereOr and AND query', async () => {
+  test('should fetch a users by whereOr with AND condition inside each branch', async () => {
     const repository = container.resolve(UserProfileRepository)
-    const result = await repository.find(
-      new Query(repository)
-        .whereOr(
-          q => q.whereEqualTo('age', 48),
-          q => q.whereEqualTo('age', 64),
-        )
-        .whereTextContains('gender', 'Male'),
+    // To combine OR with AND, include the AND condition inside each OR branch
+    const terminalQuery = new Query(repository).whereOr(
+      q => q.whereEqualTo('age', 48).whereTextContains('gender', 'Male'),
+      q => q.whereEqualTo('age', 64).whereTextContains('gender', 'Male'),
     )
+    const result = await repository.find(TerminalPaginatedQuery.from(terminalQuery))
     expect(result.items.length).toEqual(
       data.users.filter(
         user => [48, 64].includes(user.profile?.age ?? 0) && /Male/.test(user.profile.gender),
@@ -363,12 +361,11 @@ describe('Repository', () => {
     const repository = container.resolve(PhotoRepository)
     try {
       const result = await repository.insertMany(images)
-      const queryResult = await repository.find(
-        new PaginatedQuery(repository).whereIn(
-          'id',
-          images.map(i => i.id),
-        ),
+      const terminalQuery = new PaginatedQuery(repository).whereIn(
+        'id',
+        images.map(i => i.id),
       )
+      const queryResult = await repository.find(TerminalPaginatedQuery.from(terminalQuery))
       expect(queryResult.items).toEqual(result)
     } finally {
       await repository.delete(images.map(i => i.id))
@@ -420,12 +417,11 @@ describe('Repository', () => {
     const repository = container.resolve(PhotoRepository)
     try {
       const result = await repository.saveMany(images)
-      const queryResult = await repository.find(
-        new PaginatedQuery(repository).whereIn(
-          'id',
-          images.map(i => i.id),
-        ),
+      const terminalQuery = new PaginatedQuery(repository).whereIn(
+        'id',
+        images.map(i => i.id),
       )
+      const queryResult = await repository.find(TerminalPaginatedQuery.from(terminalQuery))
       expect(queryResult.items).toEqual(result)
     } finally {
       await repository.delete(images.map(i => i.id))

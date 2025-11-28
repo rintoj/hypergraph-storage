@@ -2,7 +2,7 @@ import DataLoader from 'dataloader'
 import { ClassType, KeysOf, toByProperty } from 'tsds-tools'
 import { DeepPartial, ObjectLiteral } from 'typeorm'
 import { OnPageLoad, PaginatedResult, PaginationFilter } from '../pagination'
-import { PaginatedQuery, Query } from '../query'
+import { PaginatedQuery, Query, TerminalPaginatedQuery, TerminalQuery } from '../query'
 import {
   DeleteOptions,
   EntityWithOptionalId,
@@ -30,9 +30,11 @@ export function createRepositoryWithCache<
     }
 
     protected async findByProperty(values: string[]): Promise<Array<Entity | null>> {
-      const items = await this.findAll(
-        new PaginatedQuery<any>(this as Repository<Entity>).whereIn(property, values),
+      const terminalQuery = new PaginatedQuery<any>(this as Repository<Entity>).whereIn(
+        property,
+        values,
       )
+      const items = await this.findAll(TerminalPaginatedQuery.from(terminalQuery))
       const itemsByProperty = toByProperty(items, property)
       return values.map(value => itemsByProperty[value] ?? null)
     }
@@ -62,14 +64,22 @@ export function createRepositoryWithCache<
       return this.loader.loadMany(ids) as Promise<Array<Entity | null>>
     }
 
-    async findOne(queryOrCallback?: Query<Entity> | ((query: Query<Entity>) => Query<Entity>)) {
+    async findOne(
+      queryOrCallback?:
+        | Query<Entity>
+        | TerminalQuery<Entity>
+        | ((query: Query<Entity>) => Query<Entity> | TerminalQuery<Entity>),
+    ) {
       return this.withCache(super.findOne(queryOrCallback))
     }
 
     async findAll(
       queryOrCallback?:
         | PaginatedQuery<Entity>
-        | ((query: PaginatedQuery<Entity>) => PaginatedQuery<Entity>),
+        | TerminalPaginatedQuery<Entity>
+        | ((
+            query: PaginatedQuery<Entity>,
+          ) => PaginatedQuery<Entity> | TerminalPaginatedQuery<Entity>),
       filter?: PaginationFilter<Entity>,
       onPage?: OnPageLoad<Entity>,
     ): Promise<Entity[]> {
@@ -79,7 +89,10 @@ export function createRepositoryWithCache<
     async find(
       queryOrCallback:
         | PaginatedQuery<Entity>
-        | ((query: PaginatedQuery<Entity>) => PaginatedQuery<Entity>),
+        | TerminalPaginatedQuery<Entity>
+        | ((
+            query: PaginatedQuery<Entity>,
+          ) => PaginatedQuery<Entity> | TerminalPaginatedQuery<Entity>),
     ): Promise<PaginatedResult<Entity>> {
       const result = await super.find(queryOrCallback)
       await this.withCacheMany(result.items)

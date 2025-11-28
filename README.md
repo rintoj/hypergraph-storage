@@ -1,111 +1,70 @@
-# Hypergraph Storage
+# @hgraph/storage
 
-- [Hypergraph Storage](#hypergraph-storage)
-  - [Install](#install)
-  - [Usage](#usage)
-  - [Usage with NestJS (Recommended)](#usage-with-nestjs-recommended)
-    - [Step 1: Configure the `StorageModule` as a Root Module](#step-1-configure-the-storagemodule-as-a-root-module)
-    - [Step 2: Configure Entities in Feature Modules](#step-2-configure-entities-in-feature-modules)
-    - [Step 3: Use Repositories in Your Services](#step-3-use-repositories-in-your-services)
-  - [Usage without NestJS](#usage-without-nestjs)
-    - [Step 1: Initialize the Data Source](#step-1-initialize-the-data-source)
-    - [Step 2: Define a Repository Class](#step-2-define-a-repository-class)
-    - [Step 3: Get an Instance of the Repository](#step-3-get-an-instance-of-the-repository)
-    - [Step 4: Use Dependency Injection with Libraries like `tsyringe`](#step-4-use-dependency-injection-with-libraries-like-tsyringe)
-  - [Fetch Records](#fetch-records)
-    - [find](#find)
-    - [findById](#findbyid)
-    - [findByIds](#findbyids)
-    - [findAll](#findall)
-    - [findOne](#findone)
-  - [Query Builder](#query-builder)
-    - [Query](#query)
-    - [PaginatedQuery](#paginatedquery)
-  - [Insert \& Update](#insert--update)
-    - [save](#save)
-    - [saveMany](#savemany)
-    - [insert](#insert)
-    - [insertMany](#insertmany)
-    - [update](#update)
-    - [updateMany](#updatemany)
-  - [Count](#count)
-  - [Increment](#increment)
-  - [Delete \& Restore](#delete--restore)
-  - [Using with Cloud Firestore](#using-with-cloud-firestore)
-    - [Using with NestJS](#using-with-nestjs)
-      - [Key Points:](#key-points)
-    - [Using without NestJS](#using-without-nestjs)
-      - [Key Points:](#key-points-1)
-    - [Additional Notes](#additional-notes)
-    - [Queries](#queries)
-    - [Modification API](#modification-api)
-  - [Using Cache](#using-cache)
-  - [TypeORM DataSource](#typeorm-datasource)
-  - [Testing](#testing)
-    - [Testing with firestore](#testing-with-firestore)
+A powerful, type-safe database abstraction layer built on TypeORM with first-class TypeScript support.
 
-This is a package for accessing databases using TypeORM, that comes with the following benefits:
+[![npm version](https://img.shields.io/npm/v/@hgraph/storage.svg)](https://www.npmjs.com/package/@hgraph/storage)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-- Built for TypeScript and typing support
-- Works best with GraphQL especially libraries like [TypeGraphQL](https://typegraphql.com/)
-- Comes with easy to use [Query](#query-builder) builder with elegant and convenient syntax with
-  typing support
-- Supports pagination through [PaginatedQuery](#paginatedquery) builder
-- Built on top of [TypeORM](https://typeorm.io/), hence comes with all the benefits that it
-  provides:
-  - Supports MySQL / MariaDB / Postgres / CockroachDB / SQLite / Microsoft SQL Server / Oracle / SAP
-    Hana / sql.js.
-  - Works in NodeJS / Browser / Ionic / Cordova / React Native / NativeScript / Expo / Electron
-    platforms.
-  - Entities and columns.
-  - Database-specific column types.
-  - Entity manager.
-  - Clean object relational model.
-  - Associations (relations).
-  - Eager and lazy relations.
-  - Uni-directional, bi-directional and self-referenced relations.
-  - Supports multiple inheritance patterns.
-  - Cascades.
-  - Indices.
-  - Transactions.
-  - Migrations and automatic migrations generation.
-  - Connection pooling.
-  - Replication.
-  - Using multiple database instances.
-  - Working with multiple databases types.
-  - Cross-database and cross-schema queries.
-  - Left and inner joins.
-  - Proper pagination for queries using joins.
-  - Query caching.
-  - Streaming raw results.
-  - Logging.
-  - Listeners and subscribers (hooks).
-  - Supports MongoDB NoSQL database.
-  - TypeScript and JavaScript support.
-  - ESM and CommonJS support.
-  - Produced code is performant, flexible, clean and maintainable.
+## Why @hgraph/storage?
 
-## Install
+- **Type-Safe Query Builder** - Catch query errors at compile time, not runtime
+- **Elegant API** - Fluent, chainable methods that read like natural language
+- **Framework Flexible** - Works seamlessly with NestJS or standalone
+- **Multi-Database Support** - PostgreSQL, MySQL, SQLite, SQL Server, Oracle, and Cloud Firestore
+- **Built-in Pagination** - First-class support for cursor-based pagination
+- **GraphQL Ready** - Optimized for GraphQL with DataLoader caching support
 
-Using npm:
+## Table of Contents
 
-```sh
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Usage with NestJS](#usage-with-nestjs)
+- [Usage without NestJS](#usage-without-nestjs)
+- [Query Builder](#query-builder)
+  - [Basic Queries](#basic-queries)
+  - [Where Conditions](#where-conditions)
+  - [Text Search](#text-search)
+  - [Array Operations](#array-operations)
+  - [Relations and Joins](#relations-and-joins)
+  - [Sorting and Pagination](#sorting-and-pagination)
+  - [Terminal Query Pattern](#terminal-query-pattern)
+- [CRUD Operations](#crud-operations)
+  - [Fetching Records](#fetching-records)
+  - [Creating and Updating](#creating-and-updating)
+  - [Counting Records](#counting-records)
+  - [Incrementing Values](#incrementing-values)
+  - [Deleting and Restoring](#deleting-and-restoring)
+- [Cloud Firestore](#cloud-firestore)
+- [Base Entity](#base-entity)
+- [ID Generation](#id-generation)
+- [Caching with DataLoader](#caching-with-dataloader)
+- [Testing](#testing)
+- [Advanced Usage](#advanced-usage)
+
+## Installation
+
+```bash
 npm install @hgraph/storage
 ```
 
-Using yarn:
-
-```sh
+```bash
 yarn add @hgraph/storage
 ```
 
-## Usage
+```bash
+bun add @hgraph/storage
+```
 
-Define entity class. See [this](docs/entities.md) for more examples.
+## Quick Start
 
-```ts
-import { Repository } from '@hgraph/storage'
-import { Column, PrimaryColumn } from 'typeorm'
+Get up and running in three simple steps. This example shows the basic pattern you'll use throughout your application.
+
+### 1. Define Your Entity
+
+Entities are TypeScript classes that map to database tables. Use TypeORM decorators to define the schema:
+
+```typescript
+import { Entity, Column, PrimaryColumn } from 'typeorm'
 
 @Entity()
 class User {
@@ -116,79 +75,96 @@ class User {
   name!: string
 
   @Column()
-  username!: string
+  email!: string
 
   @Column({ nullable: true })
   bio?: string
 
-  @Column({ nullable: true })
+  @Column({ default: false })
   verified?: boolean
 
-  @Column({ nullable: true })
+  @Column({ default: 0 })
   followers?: number
 }
 ```
 
-## Usage with NestJS (Recommended)
+### 2. Create a Repository
 
-To integrate the `StorageModule` into your NestJS application effectively, follow the steps below.
-The `StorageModule` provides a convenient way to manage repositories and entities within your NestJS
-ecosystem. For more information on NestJS modules, refer to the
-[NestJS Module Documentation](https://docs.nestjs.com/modules).
+Repositories handle all database operations for an entity. Create one by extending the base `Repository` class:
 
-### Step 1: Configure the `StorageModule` as a Root Module
+```typescript
+import { Repository } from '@hgraph/storage'
 
-Begin by setting up the `StorageModule` in your root module (commonly `AppModule`). This
-configuration initializes the storage layer and connects to the database using parameters from your
-environment configuration:
+class UserRepository extends Repository<User> {
+  constructor() {
+    super(User)
+  }
+}
+```
 
-```ts
+### 3. Query Your Data
+
+Use the fluent query builder to fetch data. All field names are type-checked, so typos are caught at compile time:
+
+```typescript
+const userRepo = new UserRepository()
+
+// Find users with elegant query syntax
+const activeUsers = await userRepo.findAll(q =>
+  q.whereEqualTo('verified', true)
+   .whereMoreThan('followers', 100)
+   .orderByDescending('followers')
+)
+```
+
+## Usage with NestJS
+
+The library integrates seamlessly with NestJS's module system, providing dependency injection for repositories and automatic connection management.
+
+### Step 1: Configure Root Module
+
+Import `StorageModule.forRoot()` in your app module to establish the database connection. This should only be done once in your application:
+
+```typescript
 import { Module } from '@nestjs/common'
 import { StorageModule, RepositoryType } from '@hgraph/storage/nestjs'
-import { AppController } from './app.controller'
-import { UserModule } from './user/user.module'
-import { AuthModule } from './auth/auth.module'
-import config from './config'
 
 @Module({
   imports: [
     StorageModule.forRoot({
-      repositoryType: RepositoryType.TypeORM, // Specify the repository type (e.g., TypeORM).
-      url: config.DATABASE_URL, // Database connection URL.
-      type: config.DATABASE_TYPE as any, // Database type (e.g., PostgreSQL, MySQL).
-      synchronize: config.DB_SYNCHRONIZE, // Synchronize schema with the database.
+      repositoryType: RepositoryType.TypeORM,
+      type: 'postgres',
+      url: process.env.DATABASE_URL,
+      synchronize: process.env.NODE_ENV === 'development',
     }),
-    UserModule, // Import your feature modules.
-    AuthModule,
+    UserModule,
   ],
-  controllers: [AppController],
 })
 export class AppModule {}
 ```
 
-### Step 2: Configure Entities in Feature Modules
+### Step 2: Register Entities in Feature Modules
 
-Each feature module should declare its entities to be managed by the `StorageModule`. This ensures
-that the necessary database schema and repository are available within the scope of the feature
-module:
+Each feature module declares which entities it uses via `StorageModule.forFeature()`. This creates the necessary repository providers scoped to that module:
 
-```ts
+```typescript
 import { Module } from '@nestjs/common'
 import { StorageModule } from '@hgraph/storage/nestjs'
 import { User } from './user.entity'
+import { UserService } from './user.service'
 
 @Module({
-  imports: [StorageModule.forFeature([User])], // Declare entities specific to this module.
+  imports: [StorageModule.forFeature([User])],
+  providers: [UserService],
 })
-export class CustomModule {}
+export class UserModule {}
 ```
 
-### Step 3: Use Repositories in Your Services
+### Step 3: Inject Repositories
 
-Once the `StorageModule` is configured, you can inject repositories into your services using the
-`@InjectRepo` decorator. This simplifies access to your database operations:
+Use the `@InjectRepo()` decorator to inject repositories into your services. The repository is fully typed based on your entity:
 
-```ts
+```typescript
 import { Injectable } from '@nestjs/common'
 import { InjectRepo, Repository } from '@hgraph/storage/nestjs'
 import { User } from './user.entity'
@@ -196,657 +172,509 @@ import { User } from './user.entity'
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepo(User) // Inject the repository for the User entity.
-    private readonly userRepository: Repository<User>,
+    @InjectRepo(User)
+    private readonly userRepo: Repository<User>,
   ) {}
 
-  // Example method for retrieving all users.
-  async findAll(): Promise<User[]> {
-    return this.userRepository.find()
+  async findVerifiedUsers(): Promise<User[]> {
+    return this.userRepo.findAll(q => q.whereEqualTo('verified', true))
   }
 }
 ```
-
-By following these steps, you can seamlessly manage your application’s data layer using the
-`StorageModule` while adhering to NestJS’s modular architecture.
 
 ## Usage without NestJS
 
-To use this library independently of NestJS, follow these steps to initialize your data source,
-configure repositories, and integrate dependency injection if required.
+You can use this library in any Node.js application. The library uses [tsyringe](https://github.com/microsoft/tsyringe) for dependency injection internally.
 
-### Step 1: Initialize the Data Source
+### Initialize the Data Source
 
-You can initialize the data source programmatically using the `initializeDataSource` function.
-Specify the database type, connection URL, and synchronization settings:
+Before using any repository, you must initialize the database connection. Do this once at application startup:
 
-```ts
+```typescript
 import { initializeDataSource } from '@hgraph/storage'
 
 await initializeDataSource({
-  type: process.env.DATABASE_TYPE as any, // Specify the database type (e.g., postgres, mysql).
-  url: process.env.DATABASE_URL, // Database connection URL.
-  synchronize: process.env.DB_SYNCHRONIZE, // Synchronize schema with the database.
+  type: 'postgres',
+  url: process.env.DATABASE_URL,
+  entities: [User, Post, Comment],
+  synchronize: true,  // Auto-create tables (disable in production)
 })
 ```
 
-Alternatively, use environment variables to configure the database connection. This approach
-simplifies deployment and avoids hardcoding sensitive information:
+Alternatively, configure via environment variables for cleaner deployment:
 
-```sh
+```bash
 DATABASE_TYPE=postgres
-DATABASE_URL=<database_type>://<username>:<password>@<host>:<port>/<database_name>
-DATABASE_SYNCHRONIZE="true"
+DATABASE_URL=postgres://user:pass@localhost:5432/mydb
+DATABASE_SYNCHRONIZE=true
 ```
 
-Then initialize the data source with the specified entities:
+### Use with Dependency Injection (tsyringe)
 
-```ts
-await initializeDataSource({
-  entities: [User], // Declare your application entities.
-})
-```
+Repositories are registered with tsyringe automatically. Use `container.resolve()` to get instances with proper singleton management:
 
-### Step 2: Define a Repository Class
-
-Create a custom repository class for managing your entities. This class extends the base
-`Repository` class and specifies the entity type:
-
-```ts
-import { Repository } from '@hgraph/storage'
-import { User } from './user.entity'
-
-class UserRepository extends Repository<User> {
-  constructor() {
-    super(User) // Initialize the repository with the User entity.
-  }
-}
-```
-
-### Step 3: Get an Instance of the Repository
-
-To interact with the `UserRepository`, create an instance of the repository. This allows you to
-perform database operations:
-
-```ts
-const userRepository = new UserRepository()
-```
-
-### Step 4: Use Dependency Injection with Libraries like `tsyringe`
-
-If you’re using a dependency injection library such as
-[`tsyringe`](https://www.npmjs.com/package/tsyringe), you can manage repository instances
-efficiently. This approach is especially useful for caching and GraphQL integrations:
-
-```ts
+```typescript
 import { container } from 'tsyringe'
 
-const userRepository = container.resolve(UserRepository) // Resolve the repository from the DI container.
+const userRepo = container.resolve(UserRepository)
+const users = await userRepo.findAll()
 ```
 
-By following these steps, you can configure and use the this library outside of a NestJS application
-while maintaining flexibility and scalability.
-
-## Fetch Records
-
-The repository class comes with `.find*` methods that you can use to query data using
-[`Query`](#query-builder) builder:
-
-- [find](#find)
-- [findById](#findbyid)
-- [findByIds](#findbyids)
-- [findAll](#findall)
-- [findOne](#findone)
-
-### find
-
-You can fetch multiple records from a table using `find` method. This method supports pagination.
-
-```ts
-// find using a query, but paginate
-const { next, items } = await userRepository.find(query =>
-  query.whereEqualTo('name', 'John Doe').next(nextTokenFromBefore).limit(200),
-)
-```
-
-will execute the following sql query and return first `200` records and a `next` token that you can
-use for next page. `OFFSET` will be calculated from `nextTokenFromBefore`
-
-```sql
-SELECT * FROM "user"
-WHERE "name" = 'John Doe'
-OFFSET <OFFSET>
-LIMIT 200
-```
-
-### findById
-
-You can query a record by id directly using `findById` method.
-
-```ts
-const user = await userRepository.findById('user1')
-```
-
-will execute a query
-
-```sql
-SELECT * FROM "user"
-WHERE "id" = 'user1'
-```
-
-### findByIds
-
-You can find more than one record by its ids by using `findByIds`.
-
-```ts
-// find many by ids
-const users = await userRepository.findByIds(['user1', 'user2'])
-```
-
-will execute a query
-
-```sql
-SELECT * FROM "user"
-WHERE "id" IN ('user1', 'user2')
-```
-
-### findAll
-
-You can use `findAll` to get all records without pagination. This method provides support for in
-memory filter and pagination callback.
-
-```ts
-// find all from the entity table
-const users = await userRepository.findAll()
-
-// find all using a query
-const users = await userRepository.findAll(query => query.whereEqualTo('name', 'John Doe'))
-
-// find all using a query, filter and a pagination callback
-const users = await userRepository.findAll(
-  query => query.whereEqualTo('name', 'John Doe'),
-  item => someLogicToFilter(item),
-  (items, next) => console.log('fetched a page', items, next),
-)
-```
-
-### findOne
-
-This method works just like `findAll` but returns only the first record.
-
-```ts
-// find one from the top
-const user = await userRepository.findOne()
-
-// find one using a query
-const user = await userRepository.findOne(query => query.whereEqualTo('name', 'John Doe'))
-```
+This approach ensures you get the same repository instance throughout your application, which is important for connection pooling and caching.
 
 ## Query Builder
 
-Query class provides an easy to use implementation for constructing complex SQL query. It allows you
-to build SQL queries using elegant and convenient syntax with typing support. Here is the
-[entity setup](docs/entities.md) for this example.
+The query builder provides a fluent, type-safe API for constructing database queries. Every method is fully typed based on your entity, so invalid field names or type mismatches are caught at compile time.
 
-### Query
+### Basic Queries
 
-```ts
-import { Query } from '@hgraph/storage'
+Repository methods accept a query builder callback. The callback receives a query object that you chain methods on:
 
-const repo = new UserRepository()
-const query = new Query(repo)
+```typescript
+import { Query, PaginatedQuery } from '@hgraph/storage'
 
-  // select columns
-  .select('bio')
-  .select('id')
-  .select('email')
+// Simple query with repository methods
+const user = await userRepo.findOne(q =>
+  q.whereEqualTo('email', 'john@example.com')
+)
 
-  // where conditions
-  .whereEqualTo('id', 'id1')
-  .whereNotEqualTo('id', 'id1')
-
-  // numeric checks
-  .whereMoreThan('version', 1)
-  .whereMoreThanOrEqual('version', 1)
-  .whereLessThan('version', 1)
-  .whereLessThanOrEqual('version', 1)
-  .whereBetween('version', 1, 2)
-
-  // numeric "NOT" operators
-  .whereNotMoreThan('version', 1)
-  .whereNotMoreThanOrEqual('version', 1)
-  .whereNotLessThan('version', 0)
-  .whereNotLessThanOrEqual('version', 1)
-
-  // search
-  .whereTextContains('bio', 'true')
-  .whereTextStartsWith('bio', 'any')
-  .whereTextEndsWith('bio', 'any')
-
-  // case insensitive search
-  .whereTextInAnyCaseContains('bio', 'any')
-  .whereTextInAnyCaseStartsWith('bio', 'any')
-  .whereTextInAnyCaseEndsWith('bio', 'any')
-
-  // "IN" operator
-  .whereIn('role', [UserRole.ADMIN, UserRole.USER])
-
-  // null checks
-  .whereIsNull('name')
-  .whereIsNotNull('name')
-
-  // array operations
-  .whereArrayContains('tags', 'new')
-  .whereArrayContainsAny('tags', ['new', 'trending'])
-
-  // search on related tables
-  .whereJoin('photos', q => q.whereIsNotNull('url'))
-
-  // build "OR" condition
-  .whereOr(
-    query => query.whereEqualTo('id', '10'),
-    query => query.whereEqualTo('id', '10'),
-  )
-
-  // sort
-  .orderByAscending('version')
-  .orderByDescending('createdAt')
-
-  // fetch related entities
-  .fetchRelation('photos', 'album')
-  .loadRelationIds() // load only 'id', not required with `fetchRelation`
-
-  // enable or set timeout for `cache`
-  .cache(5000 ?? true)
-```
-
-### PaginatedQuery
-
-`PaginatedQuery`, in addition to the following, supports all the methods in `Query`.
-
-```ts
-import { PaginatedQuery } from '@hgraph/storage'
-
-const repo = new UserRepository()
-const query = new PaginatedQuery(repo)
-
-  // use individual methods
-  .next('token')
-  .limit(10)
-
-  // or use this method
-  .pagination({ next: 'token', limit: 10 })
-```
-
-## Insert & Update
-
-You can insert and update records using the following methods:
-
-- [save](#save)
-- [saveMany](#savemany)
-- [insert](#insert)
-- [insertMany](#insertmany)
-- [update](#update)
-- [updateMany](#updatemany)
-
-### save
-
-This method will insert if the `id` (if provided) does not exist in the database, or will update the
-existing record.
-
-```ts
-const user = await userRepository.save({ id: 'user1', name: 'John Doe', username: 'johnd' })
-```
-
-### saveMany
-
-You can insert or update more than one record using in a step using `saveMany`. Just like `save` the
-record will inserted if `id` does not record.
-
-```ts
-const users = await userRepository.saveMany([
-  { id: 'user1', name: 'John Doe', username: 'johndoe' },
-  { id: 'user2', name: 'Mejia Henderso', username: 'mh' },
-])
-```
-
-### insert
-
-You can insert a record using `insert` method. "id" will be auto populated, if omitted.
-
-```ts
-const user = await userRepository.insert({ name: 'John Done', username: 'johndoe' })
-```
-
-### insertMany
-
-You can insert multiple users at once using `insertMany`.
-
-```ts
-const users = await userRepository.insertMany([
-  { name: 'John Doe', username: 'johndoe' },
-  { name: 'Mejia Henderso', username: 'mh' },
-])
-```
-
-### update
-
-Use this method to update a record, "id" is mandatory input.
-
-```ts
-const user = await userRepository.update({ id: 'user1', username: 'john' })
-```
-
-### updateMany
-
-You can update more than one record using a query using `updateMany`.
-
-```ts
-// update multiple records at once using a query
-const users = await userRepository.updateMany(query => query.whereEqualTo('username', 'johndoe'), {
-  verified: true,
-})
-```
-
-## Count
-
-This method counts entities that match query (if provided) and returns a numeric value.
-
-```ts
-// count all users
-const count = await userRepository.count()
-
-// count all users with a query
-const count = await userRepository.count(query => query.whereEqualTo('name', 'John Doe'))
-```
-
-## Increment
-
-You can increment or decrement the value of a numeric column using an id or a query using this
-method.
-
-```ts
-// increment by id
-const user = await userRepository.increment('user1', 'followers', 1)
-
-// decrement by id
-const user = await userRepository.increment('user1', 'followers', -1)
-
-// increment by query
-const user = await userRepository.increment(
-  query => query.whereEqualTo('name', 'John Doe'),
-  'followers',
-  1,
+// Paginated query
+const { items, next } = await userRepo.find(q =>
+  q.whereEqualTo('verified', true)
+   .limit(20)
+   .next(previousToken)
 )
 ```
 
-## Delete & Restore
+### Where Conditions
 
-You can permanently delete a record from the table using `delete`. Alternatively you may choose to
-use soft delete by passing `{ softDelete: true }` option. This will keep the record in the table,
-however will populate `deletedAt` column with the current time stamp. TypeORM will inject
-`"deletedAt" IS NULL` to all queries by default, thus eliminating any records that were soft
-deleted. `restore` will remove `deletedAt` value.
+Filter records using a variety of comparison operators. All conditions are combined with AND logic by default:
 
-```ts
-// delete a user
-await userRepository.delete('user1') // delete by id
-await userRepository.delete(query => query.whereEqualTo('verified', false)) // delete by query
+```typescript
+// Equality
+q.whereEqualTo('status', 'active')
+q.whereNotEqualTo('status', 'deleted')
 
-// soft delete a user
-await userRepository.delete('user1', { softDelete: true }) // soft delete by id
-await userRepository.delete(query => query.whereEqualTo('verified', false), { softDelete: true }) // soft delete by query
+// Comparisons
+q.whereMoreThan('age', 18)
+q.whereMoreThanOrEqual('score', 100)
+q.whereLessThan('price', 50)
+q.whereLessThanOrEqual('quantity', 10)
+q.whereBetween('rating', 3, 5)
 
-// restore a user if soft deleted
-await userRepository.restore('user1') // restore by id
-await userRepository.restore(query => query.whereEqualTo('verified', false)) // restore by query
+// Negated comparisons
+q.whereNotMoreThan('attempts', 3)
+q.whereNotLessThan('balance', 0)
+
+// Null checks
+q.whereIsNull('deletedAt')
+q.whereIsNotNull('verifiedAt')
+
+// IN operator
+q.whereIn('role', ['admin', 'moderator'])
+
+// OR conditions
+q.whereOr(
+  q1 => q1.whereEqualTo('role', 'admin'),
+  q2 => q2.whereEqualTo('role', 'superuser')
+)
 ```
 
----
+### Text Search
 
-## Using with Cloud Firestore
+Search within text fields using SQL LIKE patterns. These are useful for implementing search functionality:
 
-This library offers robust support for
-[Cloud Firestore](https://firebase.google.com/docs/firestore), making it easier to integrate with
-your applications. Whether you are using NestJS or a standalone setup, this guide will walk you
-through the initialization process and demonstrate how to configure the data source and repositories
-for seamless integration. Most APIs provided by this library are designed to be compatible with each
-other, ensuring a consistent development experience.
+```typescript
+// Partial matches
+q.whereTextContains('bio', 'developer')      // LIKE '%developer%'
+q.whereTextStartsWith('name', 'John')        // LIKE 'John%'
+q.whereTextEndsWith('email', '@gmail.com')   // LIKE '%@gmail.com'
 
-### Using with NestJS
+// Case-insensitive search
+q.whereTextInAnyCaseContains('title', 'urgent')
+q.whereTextInAnyCaseStartsWith('name', 'john')
+q.whereTextInAnyCaseEndsWith('domain', '.COM')
+```
 
-If you're working with NestJS, integrating this library is straightforward. The following example
-demonstrates how to set up the `StorageModule` with Firestore as the repository type. Ensure you
-have your Firebase service account configuration and storage bucket details ready:
+### Array Operations
+
+For columns that store arrays (like tags or categories), use these methods to query by array contents:
+
+```typescript
+// Check if array column contains a specific value
+q.whereArrayContains('tags', 'featured')
+
+// Check if array column contains any of the given values
+q.whereArrayContainsAny('categories', ['tech', 'science'])
+```
+
+### Relations and Joins
+
+Query across related entities using joins. This is powerful for filtering based on related data or eagerly loading associations:
+
+```typescript
+// Filter users who have at least one published post
+q.whereJoin('posts', postQuery =>
+  postQuery.whereEqualTo('published', true)
+)
+
+// Eagerly load related entities in the result
+// Avoids N+1 queries when accessing relations
+q.fetchRelation('posts', 'comments', 'author')
+
+// Load only relation IDs instead of full objects (better performance when you just need IDs)
+q.loadRelationIds()
+```
+
+### Sorting and Pagination
+
+Control result ordering and implement efficient pagination using cursor-based tokens:
+
+```typescript
+// Sorting - chain multiple for secondary sort
+q.orderByAscending('name')
+q.orderByDescending('createdAt')
+
+// Pagination using cursor tokens
+// The 'next' token is returned from previous queries
+q.limit(25)
+q.next('cursor-token')
+
+// Or combine pagination options
+q.pagination({ limit: 25, next: 'cursor-token' })
+
+// Select specific columns (improves performance for large tables)
+q.select('id', 'name', 'email')
+
+// Enable query result caching (milliseconds)
+q.cache(5000) // Cache for 5 seconds
+```
+
+### Terminal Query Pattern
+
+To prevent TypeORM runtime errors, certain methods (`whereIn` and `whereOr`) must be called last. The type system enforces this at compile time:
+
+```typescript
+// CORRECT: whereIn is last
+q.whereEqualTo('status', 'active')
+ .orderByDescending('createdAt')
+ .whereIn('groupId', groupIds)
+
+// COMPILE ERROR: can't chain after whereIn
+q.whereIn('groupId', groupIds)
+ .whereEqualTo('status', 'active')  // TypeScript error!
+```
+
+**Rules:**
+1. `whereIn` must be the last where condition
+2. `whereOr` must be the last where condition
+3. Never use `whereIn` inside `whereJoin` or `whereOr`
+
+After terminal operations, you can still chain: `orderBy*`, `select`, `fetchRelation`, `limit`, `next`, `cache`.
+
+See [docs/query-builder.md](docs/query-builder.md) for complete documentation.
+
+## CRUD Operations
+
+The repository provides a complete set of methods for creating, reading, updating, and deleting records.
+
+### Fetching Records
+
+Multiple methods are available depending on whether you need one record, multiple records, or paginated results:
+
+```typescript
+// Find by ID
+const user = await userRepo.findById('user-123')
+
+// Find by multiple IDs
+const users = await userRepo.findByIds(['user-1', 'user-2', 'user-3'])
+
+// Find one with query
+const admin = await userRepo.findOne(q =>
+  q.whereEqualTo('role', 'admin')
+)
+
+// Find all (no pagination)
+const allUsers = await userRepo.findAll()
+
+// Find all with query and filter
+const filteredUsers = await userRepo.findAll(
+  q => q.whereEqualTo('verified', true),
+  user => user.followers > 1000,  // In-memory filter
+  (items, next) => console.log(`Fetched ${items.length} users`)  // Progress callback
+)
+
+// Find with pagination
+const { items, next } = await userRepo.find(q =>
+  q.whereEqualTo('active', true)
+   .limit(50)
+)
+```
+
+### Creating and Updating
+
+The library distinguishes between `insert` (always creates new), `update` (always modifies existing), and `save` (upsert - creates or updates based on ID):
+
+```typescript
+// Insert (auto-generates ID if omitted)
+const newUser = await userRepo.insert({
+  name: 'Jane Doe',
+  email: 'jane@example.com'
+})
+
+// Insert multiple
+const users = await userRepo.insertMany([
+  { name: 'User 1', email: 'user1@example.com' },
+  { name: 'User 2', email: 'user2@example.com' }
+])
+
+// Save (insert or update based on ID)
+const user = await userRepo.save({
+  id: 'user-123',
+  name: 'Updated Name'
+})
+
+// Save multiple
+await userRepo.saveMany([...users])
+
+// Update (ID required)
+const updated = await userRepo.update({
+  id: 'user-123',
+  verified: true
+})
+
+// Update multiple by query
+await userRepo.updateMany(
+  q => q.whereEqualTo('status', 'pending'),
+  { status: 'active' }
+)
+```
+
+### Counting Records
+
+Get the number of matching records without fetching the data itself:
+
+```typescript
+// Count all records in the table
+const total = await userRepo.count()
+
+// Count records matching a condition
+const verifiedCount = await userRepo.count(q =>
+  q.whereEqualTo('verified', true)
+)
+```
+
+### Incrementing Values
+
+Atomically increment or decrement numeric fields. This is safer than read-modify-write patterns for counters:
+
+```typescript
+// Increment a counter by ID
+await userRepo.increment('user-123', 'followers', 1)
+
+// Decrement by using negative value
+await userRepo.increment('user-123', 'followers', -1)
+
+// Increment for all records matching a query
+await userRepo.increment(
+  q => q.whereEqualTo('featured', true),
+  'views',
+  1
+)
+```
+
+### Deleting and Restoring
+
+Choose between hard delete (permanent removal) or soft delete (sets `deletedAt` timestamp). Soft-deleted records are automatically excluded from queries but can be restored later:
+
+```typescript
+// Hard delete - permanently removes from database
+await userRepo.delete('user-123')
+
+// Delete multiple records matching a query
+await userRepo.delete(q =>
+  q.whereEqualTo('status', 'spam')
+)
+
+// Soft delete - keeps record but marks as deleted
+// Requires using BaseEntity which includes deletedAt field
+await userRepo.delete('user-123', { softDelete: true })
+
+// Restore a soft-deleted record
+await userRepo.restore('user-123')
+
+// Restore multiple records by query
+await userRepo.restore(q =>
+  q.whereEqualTo('status', 'suspended')
+)
+```
+
+## Cloud Firestore
+
+This library supports Google Cloud Firestore as an alternative to SQL databases. The same repository patterns and most query methods work identically, making it easy to switch between backends or use both in the same application.
+
+### Installation
+
+```bash
+npm install firebase-admin
+```
+
+### With NestJS
 
 ```typescript
 import { Module } from '@nestjs/common'
-import { StorageModule, RepositoryType } from '@hgraph/storage'
-import { UserModule } from './user/user.module'
-import { AuthModule } from './auth/auth.module'
-import { AppController } from './app.controller'
+import { StorageModule, RepositoryType } from '@hgraph/storage/nestjs'
 
 @Module({
   imports: [
     StorageModule.forRoot({
-      repositoryType: RepositoryType.Firestore, // Specify Firestore as the repository type
-      serviceAccountConfig: process.env.FIREBASE_SERVICE_ACCOUNT, // Path or JSON object containing your service account details
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET, // Optional: Specify your Firebase Storage bucket
+      repositoryType: RepositoryType.Firestore,
+      serviceAccountConfig: process.env.FIREBASE_SERVICE_ACCOUNT,
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET, // Optional
     }),
-    UserModule, // Import additional modules as needed
-    AuthModule,
   ],
-  controllers: [AppController], // Define application controllers
 })
 export class AppModule {}
 ```
 
-#### Key Points:
-
-- Replace `process.env.FIREBASE_SERVICE_ACCOUNT` with the appropriate path or JSON content for your
-  Firebase service account.
-- The `storageBucket` parameter is optional but can be included if your application uses Firebase
-  Storage.
-
-### Using without NestJS
-
-For non-NestJS applications, you can initialize the Firestore data source and define repositories
-directly. This provides flexibility for various use cases:
+### Without NestJS
 
 ```typescript
 import { initializeFirestore, FirestoreRepository } from '@hgraph/storage'
 
-// Initialize Firestore with service account configuration
 await initializeFirestore({
-  serviceAccountConfig: 'string', // Path to the JSON file containing your service account configuration
+  serviceAccountConfig: './service-account.json'
 })
 
-// Define a repository for a specific entity
-export class UserRepository extends FirestoreRepository<UserEntity> {
-  constructor() {
-    super(UserEntity) // Pass the entity class to the repository
-  }
-}
-```
-
-#### Key Points:
-
-- Ensure the `serviceAccountConfig` points to a valid Firebase service account JSON file.
-- Extend `FirestoreRepository` to create custom repositories for your entities, making it easier to
-  manage Firestore collections.
-
-### Additional Notes
-
-- Ensure you have installed the necessary Firebase SDK and dependencies before proceeding.
-- Always validate your service account credentials and configurations to avoid runtime errors.
-- For more advanced usage, refer to the library’s API documentation and Firestore’s official
-  guidelines.
-
-```sh
-npm install firebase-admin
-```
-
----
-
-### Queries
-
-The following apis are supported
-
-```ts
-import { FirestoreQuery } from '@hgraph/storage'
-
-const repo = new UserRepository()
-const query = new FirestoreQuery(repo)
-
-  // select columns
-  .select('bio')
-  .select('id')
-  .select('email')
-
-  // where conditions
-  .whereEqualTo('id', 'id1')
-  .whereNotEqualTo('id', 'id1')
-
-  // numeric checks
-  .whereMoreThan('version', 1)
-  .whereMoreThanOrEqual('version', 1)
-  .whereLessThan('version', 1)
-  .whereLessThanOrEqual('version', 1)
-  .whereBetween('version', 1, 2)
-
-  // numeric "NOT" operators
-  .whereNotMoreThan('version', 1)
-  .whereNotMoreThanOrEqual('version', 1)
-  .whereNotLessThan('version', 0)
-  .whereNotLessThanOrEqual('version', 1)
-
-  // search
-  // .whereTextContains('bio', 'true')                    // NOT SUPPORTED
-  .whereTextStartsWith('bio', 'any')
-  // .whereTextEndsWith('bio', 'any')                     // NOT SUPPORTED
-
-  // case insensitive search
-  // .whereTextInAnyCaseContains('bio', 'any')            // NOT SUPPORTED
-  // .whereTextInAnyCaseStartsWith('bio', 'any')          // NOT SUPPORTED
-  // .whereTextInAnyCaseEndsWith('bio', 'any')            // NOT SUPPORTED
-
-  // "IN" operator
-  .whereIn('role', [UserRole.ADMIN, UserRole.USER])
-
-  // null checks
-  .whereIsNull('name')
-  .whereIsNotNull('name')
-
-  // array operations
-  .whereArrayContains('tags', 'new')
-  .whereArrayContainsAny('tags', ['new', 'trending'])
-
-  // search on related tables
-  // .whereJoin('photos', q => q.whereIsNotNull('url'))   // NOT SUPPORTED YET
-
-  // build "OR" condition
-  .whereOr(
-    query => query.whereEqualTo('id', '10'),
-    query => query.whereEqualTo('id', '10'),
-  )
-
-  // sort
-  .orderByAscending('version')
-  .orderByDescending('createdAt')
-
-  // fetch related entities
-  // .fetchRelation('photos', 'album')                 // NOT SUPPORTED YET
-  .loadRelationIds()
-
-  // enable or set timeout for `cache`
-  .cache(5000 ?? true) // NOT EFFECT
-```
-
-### Modification API
-
-```ts
-// save a user
-const user = await userRepository.save({ id: 'user1', name: 'John Doe', username: 'johnd' })
-
-// save multiple users
-const users = await userRepository.saveMany([
-  { id: 'user1', name: 'John Doe', username: 'johndoe' },
-  { id: 'user2', name: 'Mejia Henderso', username: 'mh' },
-])
-
-// update a user
-const user = await userRepository.update({ id: 'user1', username: 'john' })
-
-// update multiple records at once using a query
-const users = await userRepository.updateMany(query => query.whereEqualTo('username', 'johndoe'), {
-  verified: true,
-})
-
-// count all users
-const count = await userRepository.count()
-
-// count all users with a query
-const count = await userRepository.count(query => query.whereEqualTo('name', 'John Doe'))
-
-// increment by id
-const user = await userRepository.increment('user1', 'followers', 1)
-
-// decrement by id
-const user = await userRepository.increment('user1', 'followers', -1)
-
-// increment by query
-const user = await userRepository.increment(
-  query => query.whereEqualTo('name', 'John Doe'),
-  'followers',
-  1,
-)
-
-// safest way to add an entity to an array "following" is as below
-const user = await userRepository.addToArray('following', {
-  id: 'user2',
-  name: 'Mejia Henderso',
-  username: 'mh',
-})
-
-// safest way to remove an entity from an array "following" is as below
-const user = await userRepository.removeFromArray('following', {
-  id: 'user2',
-  name: 'Mejia Henderso',
-  username: 'mh',
-})
-
-// delete a user
-await userRepository.delete('user1') // delete by id
-await userRepository.delete(query => query.whereEqualTo('verified', false)) // delete by query
-
-// soft delete a user - NOT SUPPORTED
-// await userRepository.delete('user1', { softDelete: true }) // soft delete by id
-// await userRepository.delete(query => query.whereEqualTo('verified', false), { softDelete: true }) // soft delete by query
-
-// restore a user if soft deleted - NOT SUPPORTED YET
-// await userRepository.restore('user1') // restore by id
-// await userRepository.restore(query => query.whereEqualTo('verified', false)) // restore by query
-```
-
-## Using Cache
-
-Id cache is very important for the performance of queries especially when using it with GraphQL.
-Therefor Hypergraph uses officially recommended library
-[dataloader](https://github.com/graphql/dataloader) to gain performance via batching and caching.
-
-```ts
-import { RepositoryWithIdCache } from '@hgraph/storage'
-
-class UserRepository extends RepositoryWithIdCache<User> {
+class UserRepository extends FirestoreRepository<User> {
   constructor() {
     super(User)
   }
 }
 ```
 
-or if you are using firestore do the following
+### Firestore-Specific Operations
 
-```ts
+Firestore provides atomic array operations that safely handle concurrent modifications:
+
+```typescript
+// Add items to an array field atomically
+// The entity must include id and the array field with items to add
+await userRepo.addToArray('following', {
+  id: 'user-123',                    // ID of the document to update
+  following: [{ id: 'user-456' }]    // Items to add to the array
+})
+
+// Remove items from an array field atomically
+await userRepo.removeFromArray('following', {
+  id: 'user-123',                    // ID of the document to update
+  following: [{ id: 'user-456' }]    // Items to remove from the array
+})
+```
+
+### Firestore Query Limitations
+
+Some TypeORM query methods are not supported in Firestore:
+
+| Feature | Support |
+|---------|---------|
+| `whereTextContains` | Not supported |
+| `whereTextEndsWith` | Not supported |
+| Case-insensitive search | Not supported |
+| `whereJoin` | Not supported |
+| `fetchRelation` | Not supported |
+| Soft delete | Not supported |
+| `cache()` | No effect |
+
+## Base Entity
+
+Instead of manually defining common fields like `id`, `createdAt`, and `updatedAt` on every entity, extend `BaseEntity` to get them automatically. This ensures consistency across your data model and enables features like soft delete and optimistic locking out of the box.
+
+```typescript
+import { BaseEntity } from '@hgraph/storage'
+import { Entity, Column } from 'typeorm'
+
+@Entity()
+class User extends BaseEntity {
+  // Inherited fields:
+  // - id: string (primary key)
+  // - createdAt: Date (auto-set on insert)
+  // - updatedAt: Date (auto-set on update)
+  // - deletedAt: Date (for soft deletes)
+  // - version: number (optimistic locking)
+
+  @Column()
+  name!: string
+
+  @Column()
+  email!: string
+}
+```
+
+The `version` field enables optimistic locking - if two processes try to update the same record simultaneously, the second update will fail rather than silently overwriting changes.
+
+## ID Generation
+
+When you insert records without specifying an ID, the library automatically generates one using `generateId()`. You can also use these utilities directly for custom ID generation needs:
+
+```typescript
+import {
+  generateId,
+  generateNumericId,
+  generateIdOf,
+  createRandomIdGenerator
+} from '@hgraph/storage'
+
+// Generate 8-character alphanumeric ID (default for auto-generated IDs)
+const id = generateId() // e.g., "Ax7kM2pQ"
+
+// Generate numeric timestamp-based ID (useful for sortable IDs)
+const numericId = generateNumericId() // e.g., "7234561234567890"
+
+// Generate deterministic hash-based ID from input (same input = same output)
+// Useful for creating stable IDs from external identifiers
+const hashId = generateIdOf('user@example.com')
+
+// Create custom ID generator with specific length and character set
+const generate12CharId = createRandomIdGenerator(12, 'ABCDEF0123456789')
+const hexId = generate12CharId() // e.g., "A1B2C3D4E5F6"
+```
+
+### Custom ID Generator Decorator
+
+For entities that need specific ID formats (like order numbers or SKUs), use the `@IdGenerator` decorator. The function runs automatically when inserting new records:
+
+```typescript
+import { BaseEntity, IdGenerator } from '@hgraph/storage'
+import { Entity, Column } from 'typeorm'
+
+@Entity()
+@IdGenerator<Order>(order => {
+  order.id = `ORD-${Date.now()}`
+})
+class Order extends BaseEntity {
+  @Column()
+  total!: number
+}
+```
+
+## Caching with DataLoader
+
+When building GraphQL APIs, the N+1 query problem can severely impact performance. For example, fetching a list of posts and then the author of each post would result in 1 + N queries.
+
+The library integrates with Facebook's [DataLoader](https://github.com/graphql/dataloader) to batch and cache requests within a single request cycle. This automatically combines multiple `findById` calls into a single batched query.
+
+```typescript
+import { RepositoryWithIdCache } from '@hgraph/storage'
+
+// Simply extend RepositoryWithIdCache instead of Repository
+class UserRepository extends RepositoryWithIdCache<User> {
+  constructor() {
+    super(User)
+  }
+}
+
+// For Firestore
 import { FirestoreRepositoryWithIdCache } from '@hgraph/storage'
 
 class UserRepository extends FirestoreRepositoryWithIdCache<User> {
@@ -856,185 +684,196 @@ class UserRepository extends FirestoreRepositoryWithIdCache<User> {
 }
 ```
 
-Alternatively you can build your own cache-by-a-property using the following code.
+### Custom Cache Key
 
-```ts
-import { Repository, RepositoryOptions, WithCache } from '@hgraph/storage'
-import { ObjectLiteral } from 'typeorm'
-import { ClassType } from 'tsds-tools'
+By default, caching uses the `id` field. For entities that are frequently looked up by a different field (like email), you can specify a custom cache key:
 
-@WithCache('name')
-class RepositoryWithNameCache<Entity extends ObjectLiteral> extends Repository<Entity> {
-  constructor(
-    public readonly entity: ClassType<Entity>,
-    public readonly options?: RepositoryOptions,
-  ) {
-    super(entity, options)
-  }
-}
+```typescript
+import { Repository, WithCache } from '@hgraph/storage'
 
-class UserRepository extends RepositoryWithNameCache<User> {
-  constructor() {
-    super(User)
-  }
-}
-```
-
-For firestore:
-
-```ts
-import {
-  FirestoreRepository,
-  FirestoreRepositoryOptions,
-  WithFirestoreCache,
-} from '@hgraph/storage'
-import { ObjectLiteral } from 'typeorm'
-import { ClassType } from 'tsds-tools'
-
-@WithFirestoreCache('name')
-class FirestoreRepositoryWithNameCache<
-  Entity extends ObjectLiteral,
-> extends FirestoreRepository<Entity> {
-  constructor(
-    public readonly entity: ClassType<Entity>,
-    public readonly options?: FirestoreRepositoryOptions,
-  ) {
-    super(entity, options)
-  }
-}
-
-class UserRepository extends FirestoreRepositoryWithNameCache<User> {
-  constructor() {
-    super(User)
-  }
-}
-```
-
-## TypeORM DataSource
-
-You can access TypeORM DataSource directly, to tap on to any TypeORM feature that is not covered by
-this library by using the following code:
-
-```ts
-import { initializeDataSource } from '@hgraph/storage'
-import { container } from 'tsyringe'
-import { DataSource } from 'typeorm'
-
-async function run() {
-  await initializeDataSource({
-    type: 'postgres',
-    ...
-  })
-
-  const dataSource = container.resolve(DataSource)
+@WithCache('email')
+class RepositoryWithEmailCache<Entity> extends Repository<Entity> {
+  // findByEmail calls will now be batched and cached
 }
 ```
 
 ## Testing
 
-This package comes with an in-memory implementation of the database based on
-[pg-mem](https://github.com/oguimbal/pg-mem) to support testing. Use `initializeMockDataSource` to
-initialize in-memory database.
+Writing tests that depend on a real database is slow and flaky. This library includes an in-memory PostgreSQL implementation using [pg-mem](https://github.com/oguimbal/pg-mem) that runs entirely in memory with no external dependencies.
 
-```ts
-import { initializeMockDataSource } from '@hgraph/storage/dist/typeorm-mock'
+### Testing with NestJS
 
-describe('Test suite', () => {
+Use `StorageModule.forTest()` to automatically swap in the mock database. Your tests run against the same repository code but with instant in-memory storage:
+
+```typescript
+import { Test } from '@nestjs/testing'
+import { StorageModule, RepositoryType } from '@hgraph/storage/nestjs'
+
+describe('UserService', () => {
+  let userService: UserService
+
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      imports: [
+        StorageModule.forTest({
+          repositoryType: RepositoryType.TypeORM,
+          type: 'postgres',
+          entities: [User],
+        }),
+        StorageModule.forFeature([User]),
+      ],
+      providers: [UserService],
+    }).compile()
+
+    userService = module.get(UserService)
+  })
+
+  it('should find users', async () => {
+    // Test your service methods
+  })
+})
+```
+
+### Testing without NestJS
+
+For non-NestJS applications, initialize the mock data source directly:
+
+```typescript
+import { initializeMockDataSource, MockTypeORMDataSource } from '@hgraph/storage/dist/typeorm-mock'
+
+describe('UserRepository', () => {
   let dataSource: MockTypeORMDataSource
-
-  class UserRepository extends Repository<UserEntity> {
-    constructor() {
-      super(UserEntity)
-    }
-  }
-
-  class PhotoRepository extends Repository<PhotoEntity> {
-    constructor() {
-      super(PhotoEntity)
-    }
-  }
 
   beforeEach(async () => {
     dataSource = await initializeMockDataSource({
       type: 'postgres',
       database: 'test',
-      entities: [UserEntity, PhotoEntity],
+      entities: [User, Post],
       synchronize: false,
-      retry: 0,
     })
-    await container.resolve(UserRepository).saveMany(data.users as any)
-    await container.resolve(PhotoRepository).saveMany(data.photos)
   })
 
   afterEach(async () => {
     dataSource?.destroy()
   })
 
-  test('should pass sanity test', async () => {
-    const repository = container.resolve(PhotoRepository)
-    const result = await repository.count()
-    expect(result).toEqual(data.photos.length)
+  it('should create and find users', async () => {
+    const repo = container.resolve(UserRepository)
+
+    await repo.save({ id: 'user-1', name: 'Test User' })
+
+    const user = await repo.findById('user-1')
+    expect(user?.name).toBe('Test User')
   })
 })
 ```
 
-### Testing with firestore
+### Testing with Firestore
 
-```ts
+For Firestore, you have two options: use the built-in mock or connect to the Firestore emulator for more realistic testing.
+
+**Option 1: In-memory mock (fastest, no setup required)**
+
+```typescript
 import { initializeMockFirestore } from '@hgraph/storage/dist/firestore-repository/firestore-mock'
 
-describe('Test suite', () => {
-  let dataSource: MockTypeORMDataSource
-
-  class UserRepository extends Repository<UserEntity> {
-    constructor() {
-      super(UserEntity)
-    }
-  }
-
-  class PhotoRepository extends Repository<PhotoEntity> {
-    constructor() {
-      super(PhotoEntity)
-    }
-  }
-
-  async function saveAll() {
-    await Promise.all([
-      container.resolve(UserRepository).saveMany(data.users as any),
-      container.resolve(PhotoRepository).saveMany(data.photos),
-    ])
-  }
-
-  async function deleteAll() {
-    await Promise.all([
-      container.resolve(UserRepository).delete(query => query),
-      container.resolve(PhotoRepository).delete(query => query),
-    ])
-  }
-
-  beforeAll(async () => {
-    // OPTION 1: RUN WITH EMULATOR
-    // const firestore = admin.initializeApp({ projectId: 'test-e9d5b' }).firestore()
-    // firestore.settings({ host: 'localhost:8080', ssl: false })
-    // container.registerInstance(FIRESTORE_INSTANCE, firestore)
-
-    // OPTION 2: RUN WITH MOCK
-    initializeMockFirestore()
-  })
-
-  beforeEach(async () => {
-    await deleteAll()
-    await saveAll()
-  })
-
-  afterAll(async () => {
-    await deleteAll()
-  })
-
-  test('should pass sanity test', async () => {
-    const repository = container.resolve(PhotoRepository)
-    const result = await repository.count()
-    expect(result).toEqual(data.photos.length)
-  })
+beforeAll(() => {
+  initializeMockFirestore()
 })
 ```
+
+**Option 2: Firestore emulator (more realistic, requires emulator running)**
+
+```typescript
+import admin from 'firebase-admin'
+import { container } from 'tsyringe'
+import { FIRESTORE_INSTANCE } from '@hgraph/storage'
+
+const firestore = admin.initializeApp({ projectId: 'test' }).firestore()
+firestore.settings({ host: 'localhost:8080', ssl: false })
+container.registerInstance(FIRESTORE_INSTANCE, firestore)
+```
+
+## Advanced Usage
+
+### Access TypeORM DataSource
+
+For features not exposed by the repository abstraction, you can access the underlying TypeORM DataSource directly. This gives you full access to TypeORM's API for advanced use cases like raw queries, transactions, or migrations:
+
+```typescript
+import { initializeDataSource } from '@hgraph/storage'
+import { container } from 'tsyringe'
+import { DataSource } from 'typeorm'
+
+await initializeDataSource({ type: 'postgres', /* ... */ })
+
+const dataSource = container.resolve(DataSource)
+
+// Now use any TypeORM feature
+await dataSource.query('SELECT * FROM users WHERE ...')
+await dataSource.transaction(async manager => { /* ... */ })
+```
+
+### Repository Resolver
+
+When building dynamic systems (like GraphQL servers that resolve repositories at runtime), use the repository resolver to look up repositories by name:
+
+```typescript
+import {
+  createRepositoryResolver,
+  registerRepository,
+  resolveRepositories
+} from '@hgraph/storage'
+
+// Register repositories manually
+registerRepository('UserRepository', UserRepository)
+registerRepository('PostRepository', PostRepository)
+
+// Or auto-discover from file patterns
+await resolveRepositories([
+  './src/repositories/*.repository.ts',
+  UserRepository,  // Can also pass classes directly
+])
+
+// Create a resolver that looks up repositories by name
+const repos = createRepositoryResolver({ container })
+
+// Access repositories dynamically (useful in generic GraphQL resolvers)
+const users = await repos.UserRepository.findAll()
+const posts = await repos.PostRepository.findById('post-1')
+```
+
+### Entity Examples
+
+See [docs/entities.md](docs/entities.md) for complete entity setup examples including:
+- Basic entities with columns
+- Enums and arrays
+- One-to-many and many-to-one relations
+- Self-referencing relations
+
+## Database Support
+
+Built on [TypeORM](https://typeorm.io/), @hgraph/storage supports:
+
+- PostgreSQL
+- MySQL / MariaDB
+- SQLite
+- Microsoft SQL Server
+- Oracle
+- CockroachDB
+- SAP Hana
+- Cloud Firestore (via dedicated adapter)
+
+## License
+
+MIT
+
+## Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting a PR.
+
+## Links
+
+- [GitHub Repository](https://github.com/rintoj/hypergraph-storage)
+- [npm Package](https://www.npmjs.com/package/@hgraph/storage)
+- [TypeORM Documentation](https://typeorm.io/)

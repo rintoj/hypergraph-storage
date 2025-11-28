@@ -325,4 +325,67 @@ describe('Query', () => {
     const repo = new UserRepository()
     expect(new Query(repo).loadRelationIds().toQuery().loadRelationIds).toEqual(true)
   })
+
+  describe('Terminal Query Enforcement', () => {
+    it('should throw error when whereIn is used inside whereJoin', () => {
+      const repo = new UserRepository()
+      expect(() => new Query(repo).whereJoin('photos', q => q.whereIn('id', ['1', '2']))).toThrow(
+        'whereIn() cannot be used inside whereJoin()',
+      )
+    })
+
+    it('should throw error when whereIn is used inside whereOr', () => {
+      const repo = new UserRepository()
+      expect(() =>
+        new Query(repo).whereOr(
+          q => q.whereIn('name', ['John', 'Doe']),
+          q => q.whereEqualTo('id', '1'),
+        ),
+      ).toThrow('whereIn() cannot be used inside whereOr()')
+    })
+
+    it('should return TerminalQuery from whereIn', () => {
+      const repo = new UserRepository()
+      const result = new Query(repo).whereIn('name', ['John', 'Doe'])
+      expect(result.constructor.name).toEqual('TerminalQuery')
+      expect(result.toQuery()).toBeDefined()
+    })
+
+    it('should return TerminalQuery from whereOr', () => {
+      const repo = new UserRepository()
+      const result = new Query(repo).whereOr(
+        q => q.whereEqualTo('id', '1'),
+        q => q.whereEqualTo('id', '2'),
+      )
+      expect(result.constructor.name).toEqual('TerminalQuery')
+      expect(result.toQuery()).toBeDefined()
+    })
+
+    it('should allow chaining safe methods after whereIn', () => {
+      const repo = new UserRepository()
+      const result = new Query(repo)
+        .whereIn('name', ['John', 'Doe'])
+        .orderByAscending('name')
+        .fetchRelation('photos')
+        .cache(false)
+        .toQuery()
+      expect(result.order).toEqual({ name: 'ASC' })
+      expect(result.relations).toEqual({ photos: true })
+      expect(result.cache).toEqual(false)
+    })
+
+    it('should allow chaining safe methods after whereOr', () => {
+      const repo = new UserRepository()
+      const result = new Query(repo)
+        .whereOr(
+          q => q.whereEqualTo('id', '1'),
+          q => q.whereEqualTo('id', '2'),
+        )
+        .orderByDescending('createdAt')
+        .select('id')
+        .toQuery()
+      expect(result.order).toEqual({ createdAt: 'DESC' })
+      expect(result.select).toEqual({ id: true })
+    })
+  })
 })
