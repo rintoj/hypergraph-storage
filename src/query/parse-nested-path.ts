@@ -1,6 +1,38 @@
 import { FindOperator, FindOptionsWhere } from 'typeorm'
 
 /**
+ * Symbol used by TypeORM FindOperator for cross-module instance checking.
+ * TypeORM uses Symbol.for() which creates a global symbol, allowing
+ * instanceof-like checks to work even when multiple copies of TypeORM
+ * are installed (e.g., in linked packages scenario).
+ */
+const FIND_OPERATOR_SYMBOL = Symbol.for('FindOperator')
+
+/**
+ * Checks if a value is a TypeORM FindOperator instance using Symbol-based
+ * detection. This works across multiple TypeORM installations.
+ *
+ * @see https://github.com/typeorm/typeorm/blob/master/src/util/InstanceChecker.ts
+ */
+function isFindOperator(value: unknown): value is FindOperator<any> {
+  // First try the Symbol check (works across TypeORM instances)
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    (value as any)['@instanceof'] === FIND_OPERATOR_SYMBOL
+  ) {
+    return true
+  }
+
+  // Fallback to instanceof for same-instance case
+  if (value instanceof FindOperator) {
+    return true
+  }
+
+  return false
+}
+
+/**
  * Parses a dot-notation path and returns the path segments
  *
  * @example
@@ -127,8 +159,9 @@ function isPlainObject(value: unknown): value is Record<string, any> {
 function isSpecialObject(value: unknown): boolean {
   if (!isPlainObject(value)) return false
 
-  // Check for FindOperator instances
-  if (value instanceof FindOperator) return true
+  // Check for FindOperator instances using Symbol-based detection
+  // This works even when multiple TypeORM versions are installed
+  if (isFindOperator(value)) return true
 
   // Check for _type property which indicates TypeORM operators
   if ('_type' in value) return true
