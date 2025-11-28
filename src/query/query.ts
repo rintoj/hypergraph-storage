@@ -9,6 +9,14 @@ import {
   setProperty,
   TypeOf,
 } from 'tsds-tools'
+import { NestedKeysOf, NestedKeysOf2, TypeOfNested } from './nested-types'
+import {
+  buildNestedWhere,
+  buildRelationsObject,
+  deepMerge,
+  getRelationPath,
+  isNestedPath,
+} from './parse-nested-path'
 import {
   ArrayContains,
   ArrayOverlap,
@@ -237,132 +245,426 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     return newQuery
   }
 
+  /**
+   * Filter by equal value - supports both direct and nested field paths
+   *
+   * @example Direct field
+   * q.whereEqualTo('status', 'active')
+   *
+   * @example Nested relation field (1 level)
+   * q.whereEqualTo('author.id', userId)
+   *
+   * @example Nested relation field (2 levels)
+   * q.whereEqualTo('author.profile.age', 25)
+   */
   whereEqualTo<Key extends KeysOf<Entity, NonArrayPrimitive>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    if (value === undefined) return this.whereIsNull(key)
-    return this.setWhere(key, value)
+  ): this
+  whereEqualTo<Path extends NestedKeysOf<Entity, NonArrayPrimitive>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereEqualTo<Path extends NestedKeysOf2<Entity, NonArrayPrimitive>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereEqualTo(key: string, value: unknown) {
+    if (value === undefined) return this.whereIsNull(key as any)
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, value)
+    }
+    return this.setWhere(key as any, value as any)
   }
 
+  /**
+   * Filter by not equal value - supports both direct and nested field paths
+   */
   whereNotEqualTo<Key extends KeysOf<Entity, NonArrayPrimitive>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    if (value === undefined) return this.whereIsNotNull(key)
-    return this.setWhere(key, Not(value))
+  ): this
+  whereNotEqualTo<Path extends NestedKeysOf<Entity, NonArrayPrimitive>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereNotEqualTo<Path extends NestedKeysOf2<Entity, NonArrayPrimitive>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereNotEqualTo(key: string, value: unknown) {
+    if (value === undefined) return this.whereIsNotNull(key as any)
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, Not(value))
+    }
+    return this.setWhere(key as any, Not(value))
   }
 
+  /**
+   * Filter by more than value - supports both direct and nested field paths
+   */
   whereMoreThan<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, MoreThan(value ?? 0))
+  ): this
+  whereMoreThan<Path extends NestedKeysOf<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereMoreThan<Path extends NestedKeysOf2<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereMoreThan(key: string, value: unknown) {
+    const operator = MoreThan(value ?? 0)
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by not more than value - supports both direct and nested field paths
+   */
   whereNotMoreThan<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, Not(MoreThan(value ?? 0)))
+  ): this
+  whereNotMoreThan<Path extends NestedKeysOf<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereNotMoreThan<Path extends NestedKeysOf2<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereNotMoreThan(key: string, value: unknown) {
+    const operator = Not(MoreThan(value ?? 0))
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by more than or equal value - supports both direct and nested field paths
+   */
   whereMoreThanOrEqual<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, MoreThanOrEqual(value ?? 0))
+  ): this
+  whereMoreThanOrEqual<Path extends NestedKeysOf<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereMoreThanOrEqual<Path extends NestedKeysOf2<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereMoreThanOrEqual(key: string, value: unknown) {
+    const operator = MoreThanOrEqual(value ?? 0)
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by not more than or equal value - supports both direct and nested field paths
+   */
   whereNotMoreThanOrEqual<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, Not(MoreThanOrEqual(value ?? 0)))
+  ): this
+  whereNotMoreThanOrEqual<Path extends NestedKeysOf<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereNotMoreThanOrEqual<Path extends NestedKeysOf2<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereNotMoreThanOrEqual(key: string, value: unknown) {
+    const operator = Not(MoreThanOrEqual(value ?? 0))
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by less than value - supports both direct and nested field paths
+   */
   whereLessThan<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, LessThan(value ?? 0))
+  ): this
+  whereLessThan<Path extends NestedKeysOf<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereLessThan<Path extends NestedKeysOf2<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereLessThan(key: string, value: unknown) {
+    const operator = LessThan(value ?? 0)
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by not less than value - supports both direct and nested field paths
+   */
   whereNotLessThan<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, Not(LessThan(value ?? 0)))
+  ): this
+  whereNotLessThan<Path extends NestedKeysOf<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereNotLessThan<Path extends NestedKeysOf2<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereNotLessThan(key: string, value: unknown) {
+    const operator = Not(LessThan(value ?? 0))
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by less than or equal value - supports both direct and nested field paths
+   */
   whereLessThanOrEqual<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, LessThanOrEqual(value ?? 0))
+  ): this
+  whereLessThanOrEqual<Path extends NestedKeysOf<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereLessThanOrEqual<Path extends NestedKeysOf2<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereLessThanOrEqual(key: string, value: unknown) {
+    const operator = LessThanOrEqual(value ?? 0)
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by not less than or equal value - supports both direct and nested field paths
+   */
   whereNotLessThanOrEqual<Key extends KeysOf<Entity, number | Date>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, Not(LessThanOrEqual(value ?? 0)))
+  ): this
+  whereNotLessThanOrEqual<Path extends NestedKeysOf<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereNotLessThanOrEqual<Path extends NestedKeysOf2<Entity, number | Date>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereNotLessThanOrEqual(key: string, value: unknown) {
+    const operator = Not(LessThanOrEqual(value ?? 0))
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by between values - supports both direct and nested field paths
+   */
   whereBetween<Key extends KeysOf<Entity, number>>(
     key: Key,
     from: TypeOf<Entity, Key> | undefined,
     to: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, Between(from ?? 0, to ?? 0))
+  ): this
+  whereBetween<Path extends NestedKeysOf<Entity, number>>(
+    path: Path,
+    from: TypeOfNested<Entity, Path> | undefined,
+    to: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereBetween<Path extends NestedKeysOf2<Entity, number>>(
+    path: Path,
+    from: TypeOfNested<Entity, Path> | undefined,
+    to: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereBetween(key: string, from: unknown, to: unknown) {
+    const operator = Between((from as number) ?? 0, (to as number) ?? 0)
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by text containing value - supports both direct and nested field paths
+   */
   whereTextContains<Key extends KeysOf<Entity, string>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, Like(`%${value ?? ''}%`))
+  ): this
+  whereTextContains<Path extends NestedKeysOf<Entity, string>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereTextContains<Path extends NestedKeysOf2<Entity, string>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereTextContains(key: string, value: unknown) {
+    const operator = Like(`%${(value as string) ?? ''}%`)
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by text starting with value - supports both direct and nested field paths
+   */
   whereTextStartsWith<Key extends KeysOf<Entity, string>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, Like(`${value ?? ''}%`))
+  ): this
+  whereTextStartsWith<Path extends NestedKeysOf<Entity, string>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereTextStartsWith<Path extends NestedKeysOf2<Entity, string>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereTextStartsWith(key: string, value: unknown) {
+    const operator = Like(`${(value as string) ?? ''}%`)
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by text ending with value - supports both direct and nested field paths
+   */
   whereTextEndsWith<Key extends KeysOf<Entity, string>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, Like(`%${value ?? ''}`))
+  ): this
+  whereTextEndsWith<Path extends NestedKeysOf<Entity, string>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereTextEndsWith<Path extends NestedKeysOf2<Entity, string>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereTextEndsWith(key: string, value: unknown) {
+    const operator = Like(`%${(value as string) ?? ''}`)
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by text containing value (case insensitive) - supports both direct and nested field paths
+   */
   whereTextInAnyCaseContains<Key extends KeysOf<Entity, string>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, ILike(`%${value ?? ''}%`))
+  ): this
+  whereTextInAnyCaseContains<Path extends NestedKeysOf<Entity, string>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereTextInAnyCaseContains<Path extends NestedKeysOf2<Entity, string>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereTextInAnyCaseContains(key: string, value: unknown) {
+    const operator = ILike(`%${(value as string) ?? ''}%`)
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by text starting with value (case insensitive) - supports both direct and nested field paths
+   */
   whereTextInAnyCaseStartsWith<Key extends KeysOf<Entity, string>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, ILike(`${value ?? ''}%`))
+  ): this
+  whereTextInAnyCaseStartsWith<Path extends NestedKeysOf<Entity, string>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereTextInAnyCaseStartsWith<Path extends NestedKeysOf2<Entity, string>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereTextInAnyCaseStartsWith(key: string, value: unknown) {
+    const operator = ILike(`${(value as string) ?? ''}%`)
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by text ending with value (case insensitive) - supports both direct and nested field paths
+   */
   whereTextInAnyCaseEndsWith<Key extends KeysOf<Entity, string>>(
     key: Key,
     value: TypeOf<Entity, Key> | undefined,
-  ) {
-    return this.setWhere(key, ILike(`%${value ?? ''}`))
+  ): this
+  whereTextInAnyCaseEndsWith<Path extends NestedKeysOf<Entity, string>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereTextInAnyCaseEndsWith<Path extends NestedKeysOf2<Entity, string>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path> | undefined,
+  ): this
+  whereTextInAnyCaseEndsWith(key: string, value: unknown) {
+    const operator = ILike(`%${(value as string) ?? ''}`)
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
+  /**
+   * Filter by value in array - supports both direct and nested field paths
+   * Note: This is a terminal operation and returns a TerminalQuery
+   */
   whereIn<Key extends KeysOf<Entity, NonArrayPrimitive>>(
     key: Key,
     value: TypeOf<Entity, Key>[] | undefined,
-  ): TerminalQuery<Entity> {
+  ): TerminalQuery<Entity>
+  whereIn<Path extends NestedKeysOf<Entity, NonArrayPrimitive>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path>[] | undefined,
+  ): TerminalQuery<Entity>
+  whereIn<Path extends NestedKeysOf2<Entity, NonArrayPrimitive>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path>[] | undefined,
+  ): TerminalQuery<Entity>
+  whereIn(key: string, value: unknown[] | undefined): TerminalQuery<Entity> {
     if (this.context.insideWhereJoin) {
       throw new Error(
         'whereIn() cannot be used inside whereJoin(). Use the explicit foreign key field instead. ' +
@@ -377,16 +679,41 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
           'use whereOr(q => q.whereEqualTo("status", "a"), q => q.whereEqualTo("status", "b"))',
       )
     }
-    this.setWhere(key, In(value ?? []))
+    const operator = In(value ?? [])
+    if (isNestedPath(key)) {
+      this.setNestedWhere(key, operator)
+    } else {
+      this.setWhere(key as any, operator)
+    }
     return TerminalQuery.from(this)
   }
 
-  whereIsNull<Key extends KeysOf<Entity>>(key: Key) {
-    return this.setWhere(key, IsNull())
+  /**
+   * Filter by null value - supports both direct and nested field paths
+   */
+  whereIsNull<Key extends KeysOf<Entity>>(key: Key): this
+  whereIsNull<Path extends NestedKeysOf<Entity>>(path: Path): this
+  whereIsNull<Path extends NestedKeysOf2<Entity>>(path: Path): this
+  whereIsNull(key: string) {
+    const operator = IsNull()
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
-  whereIsNotNull<Key extends KeysOf<Entity>>(key: Key) {
-    return this.setWhere(key, Not(IsNull()))
+  /**
+   * Filter by not null value - supports both direct and nested field paths
+   */
+  whereIsNotNull<Key extends KeysOf<Entity>>(key: Key): this
+  whereIsNotNull<Path extends NestedKeysOf<Entity>>(path: Path): this
+  whereIsNotNull<Path extends NestedKeysOf2<Entity>>(path: Path): this
+  whereIsNotNull(key: string) {
+    const operator = Not(IsNull())
+    if (isNestedPath(key)) {
+      return this.setNestedWhere(key, operator)
+    }
+    return this.setWhere(key as any, operator)
   }
 
   whereArrayContains<Key extends KeysOf<Entity, ArrayPrimitive>>(
@@ -430,6 +757,39 @@ export class QueryWithWhere<Entity extends ObjectLiteral> {
     }
 
     this.query = setProperty(['where', key].join('.'), where, this.query)
+    return this
+  }
+
+  /**
+   * Helper method to handle nested path where conditions
+   * Automatically adds the relation and builds the nested where structure
+   */
+  protected setNestedWhere(path: string, value: unknown) {
+    // Build the nested where condition
+    const nestedWhere = buildNestedWhere(path, value)
+
+    // Add the relation automatically
+    const relationPath = getRelationPath(path)
+    if (relationPath) {
+      const relationsObj = buildRelationsObject(relationPath)
+      this.query.relations = deepMerge(
+        (this.query.relations as Record<string, any>) ?? {},
+        relationsObj,
+      )
+    }
+
+    // Merge with existing where conditions
+    if (this.query.where instanceof Array) {
+      this.query.where = this.query.where.map(w =>
+        deepMerge(w as Record<string, any>, nestedWhere),
+      ) as FindOptionsWhere<Entity>[]
+    } else {
+      this.query.where = deepMerge(
+        (this.query.where as Record<string, any>) ?? {},
+        nestedWhere,
+      ) as FindOptionsWhere<Entity>
+    }
+
     return this
   }
 
@@ -541,7 +901,16 @@ export class PaginatedQuery<Entity extends ObjectLiteral> extends Query<Entity> 
   override whereIn<Key extends KeysOf<Entity, NonArrayPrimitive>>(
     key: Key,
     value: TypeOf<Entity, Key>[] | undefined,
-  ): TerminalPaginatedQuery<Entity> {
+  ): TerminalPaginatedQuery<Entity>
+  override whereIn<Path extends NestedKeysOf<Entity, NonArrayPrimitive>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path>[] | undefined,
+  ): TerminalPaginatedQuery<Entity>
+  override whereIn<Path extends NestedKeysOf2<Entity, NonArrayPrimitive>>(
+    path: Path,
+    value: TypeOfNested<Entity, Path>[] | undefined,
+  ): TerminalPaginatedQuery<Entity>
+  override whereIn(key: string, value: unknown[] | undefined): TerminalPaginatedQuery<Entity> {
     if (this.context.insideWhereJoin) {
       throw new Error(
         'whereIn() cannot be used inside whereJoin(). Use the explicit foreign key field instead. ' +
@@ -556,7 +925,12 @@ export class PaginatedQuery<Entity extends ObjectLiteral> extends Query<Entity> 
           'use whereOr(q => q.whereEqualTo("status", "a"), q => q.whereEqualTo("status", "b"))',
       )
     }
-    this.setWhere(key, In(value ?? []))
+    const operator = In(value ?? [])
+    if (isNestedPath(key)) {
+      this.setNestedWhere(key, operator)
+    } else {
+      this.setWhere(key as any, operator)
+    }
     return TerminalPaginatedQuery.from(this)
   }
 

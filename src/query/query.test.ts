@@ -1,9 +1,15 @@
 import { DataSource, FindManyOptions } from 'typeorm'
-import { UserEntity } from '../entity'
+import { PhotoEntity, UserEntity } from '../entity'
 import { toPaginationToken } from '../pagination'
 import { Repository } from '../repository'
 import { DEFAULT_CACHE_TIME, DEFAULT_PAGE_SIZE, PaginatedQuery, Query } from './query'
 import { toSQLQuery } from './to-sql-query'
+
+class PhotoRepository extends Repository<PhotoEntity> {
+  constructor() {
+    super(PhotoEntity)
+  }
+}
 
 class UserRepository extends Repository<UserEntity> {
   constructor() {
@@ -386,6 +392,175 @@ describe('Query', () => {
         .toQuery()
       expect(result.order).toEqual({ createdAt: 'DESC' })
       expect(result.select).toEqual({ id: true })
+    })
+  })
+
+  describe('Nested Field Filtering', () => {
+    it('should filter by nested relation field (1 level)', () => {
+      const repo = new PhotoRepository()
+      const query = new Query(repo).whereEqualTo('user.id', 'user-1').toQuery()
+      expect(query.relations).toEqual({ user: true })
+      expect(query.where).toEqual({ user: { id: 'user-1' } })
+    })
+
+    it('should filter by nested relation field (2 levels)', () => {
+      const repo = new PhotoRepository()
+      const query = new Query(repo).whereEqualTo('album.owner.id', 'owner-1').toQuery()
+      expect(query.relations).toEqual({ album: { owner: true } })
+      expect(query.where).toEqual({ album: { owner: { id: 'owner-1' } } })
+    })
+
+    it('should combine direct and nested filters', () => {
+      const repo = new PhotoRepository()
+      const query = new Query(repo)
+        .whereEqualTo('url', 'https://example.com')
+        .whereEqualTo('user.id', 'user-1')
+        .toQuery()
+      expect(query.relations).toEqual({ user: true })
+      expect(query.where).toEqual({
+        url: 'https://example.com',
+        user: { id: 'user-1' },
+      })
+    })
+
+    it('should support whereNotEqualTo with nested fields', () => {
+      const repo = new PhotoRepository()
+      const query = new Query(repo).whereNotEqualTo('user.id', 'user-1').toQuery()
+      expect(query.relations).toEqual({ user: true })
+      expect(query.where).toEqual({
+        user: {
+          id: expect.objectContaining({ _type: 'not' }),
+        },
+      })
+    })
+
+    it('should support whereMoreThan with nested fields', () => {
+      const repo = new PhotoRepository()
+      const query = new Query(repo).whereMoreThan('user.version', 5).toQuery()
+      expect(query.relations).toEqual({ user: true })
+      expect(query.where).toEqual({
+        user: {
+          version: expect.objectContaining({ _type: 'moreThan' }),
+        },
+      })
+    })
+
+    it('should support whereLessThan with nested fields', () => {
+      const repo = new PhotoRepository()
+      const query = new Query(repo).whereLessThan('user.version', 10).toQuery()
+      expect(query.relations).toEqual({ user: true })
+      expect(query.where).toEqual({
+        user: {
+          version: expect.objectContaining({ _type: 'lessThan' }),
+        },
+      })
+    })
+
+    it('should support whereTextContains with nested fields', () => {
+      const repo = new PhotoRepository()
+      const query = new Query(repo).whereTextContains('user.name', 'John').toQuery()
+      expect(query.relations).toEqual({ user: true })
+      expect(query.where).toEqual({
+        user: {
+          name: expect.objectContaining({ _type: 'like' }),
+        },
+      })
+    })
+
+    it('should support whereIn with nested fields', () => {
+      const repo = new PhotoRepository()
+      const query = new Query(repo).whereIn('user.id', ['user-1', 'user-2']).toQuery()
+      expect(query.relations).toEqual({ user: true })
+      expect(query.where).toEqual({
+        user: {
+          id: expect.objectContaining({ _type: 'in' }),
+        },
+      })
+    })
+
+    it('should support whereIsNull with nested fields', () => {
+      const repo = new PhotoRepository()
+      const query = new Query(repo).whereIsNull('user.email').toQuery()
+      expect(query.relations).toEqual({ user: true })
+      expect(query.where).toEqual({
+        user: {
+          email: expect.objectContaining({ _type: 'isNull' }),
+        },
+      })
+    })
+
+    it('should support whereIsNotNull with nested fields', () => {
+      const repo = new PhotoRepository()
+      const query = new Query(repo).whereIsNotNull('user.email').toQuery()
+      expect(query.relations).toEqual({ user: true })
+      expect(query.where).toEqual({
+        user: {
+          email: expect.objectContaining({
+            _type: 'not',
+            _value: expect.objectContaining({ _type: 'isNull' }),
+          }),
+        },
+      })
+    })
+
+    it('should support multiple nested conditions on same relation', () => {
+      const repo = new PhotoRepository()
+      const query = new Query(repo)
+        .whereEqualTo('user.id', 'user-1')
+        .whereTextContains('user.name', 'John')
+        .toQuery()
+      expect(query.relations).toEqual({ user: true })
+      expect(query.where).toEqual({
+        user: {
+          id: 'user-1',
+          name: expect.objectContaining({ _type: 'like' }),
+        },
+      })
+    })
+
+    it('should support multiple nested conditions on different relations', () => {
+      const repo = new PhotoRepository()
+      const query = new Query(repo)
+        .whereEqualTo('user.id', 'user-1')
+        .whereEqualTo('album.name', 'Summer')
+        .toQuery()
+      expect(query.relations).toEqual({ user: true, album: true })
+      expect(query.where).toEqual({
+        user: { id: 'user-1' },
+        album: { name: 'Summer' },
+      })
+    })
+
+    it('should work with PaginatedQuery', () => {
+      const repo = new PhotoRepository()
+      const query = new PaginatedQuery(repo).whereEqualTo('user.id', 'user-1').limit(50).toQuery()
+      expect(query.relations).toEqual({ user: true })
+      expect(query.where).toEqual({ user: { id: 'user-1' } })
+      expect(query.take).toEqual(50)
+    })
+
+    it('should support whereBetween with nested fields', () => {
+      const repo = new PhotoRepository()
+      const query = new Query(repo).whereBetween('user.version', 1, 10).toQuery()
+      expect(query.relations).toEqual({ user: true })
+      expect(query.where).toEqual({
+        user: {
+          version: expect.objectContaining({ _type: 'between' }),
+        },
+      })
+    })
+
+    it('should preserve existing whereJoin relations when using nested filters', () => {
+      const repo = new UserRepository()
+      const query = new Query(repo)
+        .whereJoin('photos', q => q.whereEqualTo('url', 'https://example.com'))
+        .whereEqualTo('profile.gender', 'male')
+        .toQuery()
+      expect(query.relations).toEqual({ photos: true, profile: true })
+      expect(query.where).toEqual({
+        photos: { url: 'https://example.com' },
+        profile: { gender: 'male' },
+      })
     })
   })
 })
