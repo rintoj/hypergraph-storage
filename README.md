@@ -18,6 +18,8 @@ A powerful, type-safe database abstraction layer built on TypeORM with first-cla
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Base Entity](#base-entity)
+- [ID Generation](#id-generation)
 - [Usage with NestJS](#usage-with-nestjs)
 - [Usage without NestJS](#usage-without-nestjs)
 - [Query Builder](#query-builder)
@@ -99,6 +101,75 @@ const activeUsers = await userRepo.findAll(q =>
    .whereMoreThan('followers', 100)
    .orderByDescending('followers')
 )
+```
+
+## Base Entity
+
+The library provides a `BaseEntity` class with common fields for your entities:
+
+```typescript
+import { BaseEntity } from '@hgraph/storage'
+import { Entity, Column } from 'typeorm'
+
+@Entity()
+class User extends BaseEntity {
+  // Inherited fields:
+  // - id: string (primary key)
+  // - createdAt: Date (auto-set on insert)
+  // - updatedAt: Date (auto-set on update)
+  // - deletedAt: Date (for soft deletes)
+  // - version: number (optimistic locking)
+
+  @Column()
+  name!: string
+
+  @Column()
+  email!: string
+}
+```
+
+## ID Generation
+
+The library provides utilities for generating unique IDs:
+
+```typescript
+import {
+  generateId,
+  generateNumericId,
+  generateIdOf,
+  createRandomIdGenerator
+} from '@hgraph/storage'
+
+// Generate 8-character alphanumeric ID
+const id = generateId() // e.g., "Ax7kM2pQ"
+
+// Generate numeric timestamp-based ID
+const numericId = generateNumericId() // e.g., "7234561234567890"
+
+// Generate deterministic hash-based ID from input
+const hashId = generateIdOf('user@example.com') // Always same output for same input
+
+// Create custom ID generator
+const generate12CharId = createRandomIdGenerator(12, 'ABCDEF0123456789')
+const hexId = generate12CharId() // e.g., "A1B2C3D4E5F6"
+```
+
+### Custom ID Generator Decorator
+
+Use the `@IdGenerator` decorator to define custom ID generation logic per entity:
+
+```typescript
+import { BaseEntity, IdGenerator } from '@hgraph/storage'
+import { Entity, Column } from 'typeorm'
+
+@Entity()
+@IdGenerator<Order>(order => {
+  order.id = `ORD-${Date.now()}`
+})
+class Order extends BaseEntity {
+  @Column()
+  total!: number
+}
 ```
 
 ## Usage with NestJS
@@ -496,16 +567,20 @@ class UserRepository extends FirestoreRepository<User> {
 
 ### Firestore-Specific Operations
 
+Firestore provides atomic array operations that safely handle concurrent modifications:
+
 ```typescript
-// Add to array field
+// Add items to an array field atomically
+// The entity must include id and the array field with items to add
 await userRepo.addToArray('following', {
-  id: 'user-456',
-  name: 'Jane'
+  id: 'user-123',                    // ID of the document to update
+  following: [{ id: 'user-456' }]    // Items to add to the array
 })
 
-// Remove from array field
+// Remove items from an array field atomically
 await userRepo.removeFromArray('following', {
-  id: 'user-456'
+  id: 'user-123',                    // ID of the document to update
+  following: [{ id: 'user-456' }]    // Items to remove from the array
 })
 ```
 
@@ -559,7 +634,42 @@ class RepositoryWithEmailCache<Entity> extends Repository<Entity> {
 
 ## Testing
 
-@hgraph/storage includes an in-memory database implementation using [pg-mem](https://github.com/oguimbal/pg-mem) for testing:
+@hgraph/storage includes an in-memory database implementation using [pg-mem](https://github.com/oguimbal/pg-mem) for testing.
+
+### Testing with NestJS
+
+Use `StorageModule.forTest()` to automatically configure an in-memory database:
+
+```typescript
+import { Test } from '@nestjs/testing'
+import { StorageModule, RepositoryType } from '@hgraph/storage/nestjs'
+
+describe('UserService', () => {
+  let userService: UserService
+
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      imports: [
+        StorageModule.forTest({
+          repositoryType: RepositoryType.TypeORM,
+          type: 'postgres',
+          entities: [User],
+        }),
+        StorageModule.forFeature([User]),
+      ],
+      providers: [UserService],
+    }).compile()
+
+    userService = module.get(UserService)
+  })
+
+  it('should find users', async () => {
+    // Test your service methods
+  })
+})
+```
+
+### Testing without NestJS
 
 ```typescript
 import { initializeMockDataSource, MockTypeORMDataSource } from '@hgraph/storage/dist/typeorm-mock'
@@ -626,6 +736,35 @@ await initializeDataSource({ type: 'postgres', /* ... */ })
 
 const dataSource = container.resolve(DataSource)
 // Use any TypeORM feature directly
+```
+
+### Repository Resolver
+
+Dynamically resolve repositories by name (useful for GraphQL resolvers):
+
+```typescript
+import {
+  createRepositoryResolver,
+  registerRepository,
+  resolveRepositories
+} from '@hgraph/storage'
+
+// Register repositories manually
+registerRepository('UserRepository', UserRepository)
+registerRepository('PostRepository', PostRepository)
+
+// Or auto-resolve from file paths
+await resolveRepositories([
+  './src/repositories/*.repository.ts',
+  UserRepository,  // Can also pass classes directly
+])
+
+// Create a resolver proxy
+const repos = createRepositoryResolver({ container })
+
+// Access repositories dynamically by name
+const users = await repos.UserRepository.findAll()
+const posts = await repos.PostRepository.findById('post-1')
 ```
 
 ### Entity Examples
