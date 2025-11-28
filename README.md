@@ -45,13 +45,23 @@ A powerful, type-safe database abstraction layer built on TypeORM with first-cla
 
 ```bash
 npm install @hgraph/storage
-# or
+```
+
+```bash
 yarn add @hgraph/storage
+```
+
+```bash
+bun add @hgraph/storage
 ```
 
 ## Quick Start
 
+Get up and running in three simple steps. This example shows the basic pattern you'll use throughout your application.
+
 ### 1. Define Your Entity
+
+Entities are TypeScript classes that map to database tables. Use TypeORM decorators to define the schema:
 
 ```typescript
 import { Entity, Column, PrimaryColumn } from 'typeorm'
@@ -80,6 +90,8 @@ class User {
 
 ### 2. Create a Repository
 
+Repositories handle all database operations for an entity. Create one by extending the base `Repository` class:
+
 ```typescript
 import { Repository } from '@hgraph/storage'
 
@@ -91,6 +103,8 @@ class UserRepository extends Repository<User> {
 ```
 
 ### 3. Query Your Data
+
+Use the fluent query builder to fetch data. All field names are type-checked, so typos are caught at compile time:
 
 ```typescript
 const userRepo = new UserRepository()
@@ -105,7 +119,7 @@ const activeUsers = await userRepo.findAll(q =>
 
 ## Base Entity
 
-The library provides a `BaseEntity` class with common fields for your entities:
+Instead of manually defining common fields like `id`, `createdAt`, and `updatedAt` on every entity, extend `BaseEntity` to get them automatically. This ensures consistency across your data model and enables features like soft delete and optimistic locking out of the box.
 
 ```typescript
 import { BaseEntity } from '@hgraph/storage'
@@ -128,9 +142,11 @@ class User extends BaseEntity {
 }
 ```
 
+The `version` field enables optimistic locking - if two processes try to update the same record simultaneously, the second update will fail rather than silently overwriting changes.
+
 ## ID Generation
 
-The library provides utilities for generating unique IDs:
+When you insert records without specifying an ID, the library automatically generates one using `generateId()`. You can also use these utilities directly for custom ID generation needs:
 
 ```typescript
 import {
@@ -140,23 +156,24 @@ import {
   createRandomIdGenerator
 } from '@hgraph/storage'
 
-// Generate 8-character alphanumeric ID
+// Generate 8-character alphanumeric ID (default for auto-generated IDs)
 const id = generateId() // e.g., "Ax7kM2pQ"
 
-// Generate numeric timestamp-based ID
+// Generate numeric timestamp-based ID (useful for sortable IDs)
 const numericId = generateNumericId() // e.g., "7234561234567890"
 
-// Generate deterministic hash-based ID from input
-const hashId = generateIdOf('user@example.com') // Always same output for same input
+// Generate deterministic hash-based ID from input (same input = same output)
+// Useful for creating stable IDs from external identifiers
+const hashId = generateIdOf('user@example.com')
 
-// Create custom ID generator
+// Create custom ID generator with specific length and character set
 const generate12CharId = createRandomIdGenerator(12, 'ABCDEF0123456789')
 const hexId = generate12CharId() // e.g., "A1B2C3D4E5F6"
 ```
 
 ### Custom ID Generator Decorator
 
-Use the `@IdGenerator` decorator to define custom ID generation logic per entity:
+For entities that need specific ID formats (like order numbers or SKUs), use the `@IdGenerator` decorator. The function runs automatically when inserting new records:
 
 ```typescript
 import { BaseEntity, IdGenerator } from '@hgraph/storage'
@@ -174,7 +191,11 @@ class Order extends BaseEntity {
 
 ## Usage with NestJS
 
+The library integrates seamlessly with NestJS's module system, providing dependency injection for repositories and automatic connection management.
+
 ### Step 1: Configure Root Module
+
+Import `StorageModule.forRoot()` in your app module to establish the database connection. This should only be done once in your application:
 
 ```typescript
 import { Module } from '@nestjs/common'
@@ -196,6 +217,8 @@ export class AppModule {}
 
 ### Step 2: Register Entities in Feature Modules
 
+Each feature module declares which entities it uses via `StorageModule.forFeature()`. This creates the necessary repository providers scoped to that module:
+
 ```typescript
 import { Module } from '@nestjs/common'
 import { StorageModule } from '@hgraph/storage/nestjs'
@@ -210,6 +233,8 @@ export class UserModule {}
 ```
 
 ### Step 3: Inject Repositories
+
+Use the `@InjectRepo()` decorator to inject repositories into your services. The repository is fully typed based on your entity:
 
 ```typescript
 import { Injectable } from '@nestjs/common'
@@ -231,7 +256,11 @@ export class UserService {
 
 ## Usage without NestJS
 
+You can use this library in any Node.js application. The library uses [tsyringe](https://github.com/microsoft/tsyringe) for dependency injection internally.
+
 ### Initialize the Data Source
+
+Before using any repository, you must initialize the database connection. Do this once at application startup:
 
 ```typescript
 import { initializeDataSource } from '@hgraph/storage'
@@ -240,11 +269,11 @@ await initializeDataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
   entities: [User, Post, Comment],
-  synchronize: true,
+  synchronize: true,  // Auto-create tables (disable in production)
 })
 ```
 
-Or use environment variables:
+Alternatively, configure via environment variables for cleaner deployment:
 
 ```bash
 DATABASE_TYPE=postgres
@@ -254,6 +283,8 @@ DATABASE_SYNCHRONIZE=true
 
 ### Use with Dependency Injection (tsyringe)
 
+Repositories are registered with tsyringe automatically. Use `container.resolve()` to get instances with proper singleton management:
+
 ```typescript
 import { container } from 'tsyringe'
 
@@ -261,11 +292,15 @@ const userRepo = container.resolve(UserRepository)
 const users = await userRepo.findAll()
 ```
 
+This approach ensures you get the same repository instance throughout your application, which is important for connection pooling and caching.
+
 ## Query Builder
 
-The query builder provides a fluent, type-safe API for constructing database queries.
+The query builder provides a fluent, type-safe API for constructing database queries. Every method is fully typed based on your entity, so invalid field names or type mismatches are caught at compile time.
 
 ### Basic Queries
+
+Repository methods accept a query builder callback. The callback receives a query object that you chain methods on:
 
 ```typescript
 import { Query, PaginatedQuery } from '@hgraph/storage'
@@ -284,6 +319,8 @@ const { items, next } = await userRepo.find(q =>
 ```
 
 ### Where Conditions
+
+Filter records using a variety of comparison operators. All conditions are combined with AND logic by default:
 
 ```typescript
 // Equality
@@ -317,6 +354,8 @@ q.whereOr(
 
 ### Text Search
 
+Search within text fields using SQL LIKE patterns. These are useful for implementing search functionality:
+
 ```typescript
 // Partial matches
 q.whereTextContains('bio', 'developer')      // LIKE '%developer%'
@@ -331,47 +370,55 @@ q.whereTextInAnyCaseEndsWith('domain', '.COM')
 
 ### Array Operations
 
+For columns that store arrays (like tags or categories), use these methods to query by array contents:
+
 ```typescript
-// Check if array contains value
+// Check if array column contains a specific value
 q.whereArrayContains('tags', 'featured')
 
-// Check if array contains any of the values
+// Check if array column contains any of the given values
 q.whereArrayContainsAny('categories', ['tech', 'science'])
 ```
 
 ### Relations and Joins
 
+Query across related entities using joins. This is powerful for filtering based on related data or eagerly loading associations:
+
 ```typescript
-// Filter by related entity
+// Filter users who have at least one published post
 q.whereJoin('posts', postQuery =>
   postQuery.whereEqualTo('published', true)
 )
 
-// Fetch related entities
+// Eagerly load related entities in the result
+// Avoids N+1 queries when accessing relations
 q.fetchRelation('posts', 'comments', 'author')
 
-// Load only relation IDs (performance optimization)
+// Load only relation IDs instead of full objects (better performance when you just need IDs)
 q.loadRelationIds()
 ```
 
 ### Sorting and Pagination
 
+Control result ordering and implement efficient pagination using cursor-based tokens:
+
 ```typescript
-// Sorting
+// Sorting - chain multiple for secondary sort
 q.orderByAscending('name')
 q.orderByDescending('createdAt')
 
-// Pagination
+// Pagination using cursor tokens
+// The 'next' token is returned from previous queries
 q.limit(25)
 q.next('cursor-token')
 
-// Combined
+// Or combine pagination options
 q.pagination({ limit: 25, next: 'cursor-token' })
 
-// Select specific columns
+// Select specific columns (improves performance for large tables)
 q.select('id', 'name', 'email')
 
-// Enable caching
+// Enable query result caching (milliseconds)
 q.cache(5000) // Cache for 5 seconds
 ```
 
@@ -401,7 +448,11 @@ See [docs/query-builder.md](docs/query-builder.md) for complete documentation.
 
 ## CRUD Operations
 
+The repository provides a complete set of methods for creating, reading, updating, and deleting records.
+
 ### Fetching Records
+
+Multiple methods are available depending on whether you need one record, multiple records, or paginated results:
 
 ```typescript
 // Find by ID
@@ -433,6 +484,8 @@ const { items, next } = await userRepo.find(q =>
 ```
 
 ### Creating and Updating
+
+The library distinguishes between `insert` (always creates new), `update` (always modifies existing), and `save` (upsert - creates or updates based on ID):
 
 ```typescript
 // Insert (auto-generates ID if omitted)
@@ -471,11 +524,13 @@ await userRepo.updateMany(
 
 ### Counting Records
 
+Get the number of matching records without fetching the data itself:
+
 ```typescript
-// Count all
+// Count all records in the table
 const total = await userRepo.count()
 
-// Count with query
+// Count records matching a condition
 const verifiedCount = await userRepo.count(q =>
   q.whereEqualTo('verified', true)
 )
@@ -483,14 +538,16 @@ const verifiedCount = await userRepo.count(q =>
 
 ### Incrementing Values
 
+Atomically increment or decrement numeric fields. This is safer than read-modify-write patterns for counters:
+
 ```typescript
-// Increment by ID
+// Increment a counter by ID
 await userRepo.increment('user-123', 'followers', 1)
 
-// Decrement by ID
+// Decrement by using negative value
 await userRepo.increment('user-123', 'followers', -1)
 
-// Increment by query
+// Increment for all records matching a query
 await userRepo.increment(
   q => q.whereEqualTo('featured', true),
   'views',
@@ -500,22 +557,25 @@ await userRepo.increment(
 
 ### Deleting and Restoring
 
+Choose between hard delete (permanent removal) or soft delete (sets `deletedAt` timestamp). Soft-deleted records are automatically excluded from queries but can be restored later:
+
 ```typescript
-// Hard delete
+// Hard delete - permanently removes from database
 await userRepo.delete('user-123')
 
-// Delete by query
+// Delete multiple records matching a query
 await userRepo.delete(q =>
   q.whereEqualTo('status', 'spam')
 )
 
-// Soft delete (sets deletedAt timestamp)
+// Soft delete - keeps record but marks as deleted
+// Requires using BaseEntity which includes deletedAt field
 await userRepo.delete('user-123', { softDelete: true })
 
-// Restore soft-deleted record
+// Restore a soft-deleted record
 await userRepo.restore('user-123')
 
-// Restore by query
+// Restore multiple records by query
 await userRepo.restore(q =>
   q.whereEqualTo('status', 'suspended')
 )
@@ -523,7 +583,7 @@ await userRepo.restore(q =>
 
 ## Cloud Firestore
 
-@hgraph/storage provides robust support for Google Cloud Firestore as an alternative to SQL databases.
+This library supports Google Cloud Firestore as an alternative to SQL databases. The same repository patterns and most query methods work identically, making it easy to switch between backends or use both in the same application.
 
 ### Installation
 
@@ -600,11 +660,14 @@ Some TypeORM query methods are not supported in Firestore:
 
 ## Caching with DataLoader
 
-For GraphQL applications, use the built-in DataLoader integration for batching and caching:
+When building GraphQL APIs, the N+1 query problem can severely impact performance. For example, fetching a list of posts and then the author of each post would result in 1 + N queries.
+
+The library integrates with Facebook's [DataLoader](https://github.com/graphql/dataloader) to batch and cache requests within a single request cycle. This automatically combines multiple `findById` calls into a single batched query.
 
 ```typescript
 import { RepositoryWithIdCache } from '@hgraph/storage'
 
+// Simply extend RepositoryWithIdCache instead of Repository
 class UserRepository extends RepositoryWithIdCache<User> {
   constructor() {
     super(User)
@@ -623,22 +686,24 @@ class UserRepository extends FirestoreRepositoryWithIdCache<User> {
 
 ### Custom Cache Key
 
+By default, caching uses the `id` field. For entities that are frequently looked up by a different field (like email), you can specify a custom cache key:
+
 ```typescript
 import { Repository, WithCache } from '@hgraph/storage'
 
 @WithCache('email')
 class RepositoryWithEmailCache<Entity> extends Repository<Entity> {
-  // Cache by email instead of ID
+  // findByEmail calls will now be batched and cached
 }
 ```
 
 ## Testing
 
-@hgraph/storage includes an in-memory database implementation using [pg-mem](https://github.com/oguimbal/pg-mem) for testing.
+Writing tests that depend on a real database is slow and flaky. This library includes an in-memory PostgreSQL implementation using [pg-mem](https://github.com/oguimbal/pg-mem) that runs entirely in memory with no external dependencies.
 
 ### Testing with NestJS
 
-Use `StorageModule.forTest()` to automatically configure an in-memory database:
+Use `StorageModule.forTest()` to automatically swap in the mock database. Your tests run against the same repository code but with instant in-memory storage:
 
 ```typescript
 import { Test } from '@nestjs/testing'
@@ -670,6 +735,8 @@ describe('UserService', () => {
 ```
 
 ### Testing without NestJS
+
+For non-NestJS applications, initialize the mock data source directly:
 
 ```typescript
 import { initializeMockDataSource, MockTypeORMDataSource } from '@hgraph/storage/dist/typeorm-mock'
@@ -703,6 +770,10 @@ describe('UserRepository', () => {
 
 ### Testing with Firestore
 
+For Firestore, you have two options: use the built-in mock or connect to the Firestore emulator for more realistic testing.
+
+**Option 1: In-memory mock (fastest, no setup required)**
+
 ```typescript
 import { initializeMockFirestore } from '@hgraph/storage/dist/firestore-repository/firestore-mock'
 
@@ -711,7 +782,7 @@ beforeAll(() => {
 })
 ```
 
-Or use the Firestore emulator:
+**Option 2: Firestore emulator (more realistic, requires emulator running)**
 
 ```typescript
 import admin from 'firebase-admin'
@@ -727,6 +798,8 @@ container.registerInstance(FIRESTORE_INSTANCE, firestore)
 
 ### Access TypeORM DataSource
 
+For features not exposed by the repository abstraction, you can access the underlying TypeORM DataSource directly. This gives you full access to TypeORM's API for advanced use cases like raw queries, transactions, or migrations:
+
 ```typescript
 import { initializeDataSource } from '@hgraph/storage'
 import { container } from 'tsyringe'
@@ -735,12 +808,15 @@ import { DataSource } from 'typeorm'
 await initializeDataSource({ type: 'postgres', /* ... */ })
 
 const dataSource = container.resolve(DataSource)
-// Use any TypeORM feature directly
+
+// Now use any TypeORM feature
+await dataSource.query('SELECT * FROM users WHERE ...')
+await dataSource.transaction(async manager => { /* ... */ })
 ```
 
 ### Repository Resolver
 
-Dynamically resolve repositories by name (useful for GraphQL resolvers):
+When building dynamic systems (like GraphQL servers that resolve repositories at runtime), use the repository resolver to look up repositories by name:
 
 ```typescript
 import {
@@ -753,16 +829,16 @@ import {
 registerRepository('UserRepository', UserRepository)
 registerRepository('PostRepository', PostRepository)
 
-// Or auto-resolve from file paths
+// Or auto-discover from file patterns
 await resolveRepositories([
   './src/repositories/*.repository.ts',
   UserRepository,  // Can also pass classes directly
 ])
 
-// Create a resolver proxy
+// Create a resolver that looks up repositories by name
 const repos = createRepositoryResolver({ container })
 
-// Access repositories dynamically by name
+// Access repositories dynamically (useful in generic GraphQL resolvers)
 const users = await repos.UserRepository.findAll()
 const posts = await repos.PostRepository.findById('post-1')
 ```
