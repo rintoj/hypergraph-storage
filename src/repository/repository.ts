@@ -140,14 +140,14 @@ export class Repository<Entity extends ObjectLiteral> {
   async update(entity: PartialEntityWithId<Entity>): Promise<Entity> {
     const record = await this.findById(entity.id)
     if (!record) throw new Error(`No such ${this.entity.name} of id '${entity.id}'`)
-    await this.repository.update(entity.id, { ...entity, id: undefined })
+    await this.repository.update(entity.id, { ...entity, id: undefined } as any)
     return { ...record, ...entity }
   }
 
   async updateMany(query: IdsOrQuery<Entity>, entity: DeepPartial<Entity>): Promise<Entity[]> {
     const where = await this.toFindOptionsWhere(query)
     if (!where) return []
-    await this.repository.update(where, entity)
+    await this.repository.update(where, entity as any)
     return this.repository.find({ where })
   }
 

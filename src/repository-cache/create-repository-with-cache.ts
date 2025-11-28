@@ -108,7 +108,7 @@ export function createRepositoryWithCache<
     }
 
     async save(entity: DeepPartial<Entity>): Promise<Entity> {
-      const id = entity[property] as string | undefined
+      const id = (entity as any)[property] as string | undefined
       if (id) this.loader.clear(id)
       return this.withCache(super.save(entity))
     }
@@ -118,14 +118,14 @@ export function createRepositoryWithCache<
       options?: { chunk?: number },
     ): Promise<Entity[]> {
       for (const entity of entities) {
-        const id = entity?.[property] as string | undefined
+        const id = (entity as any)?.[property] as string | undefined
         if (id) this.loader.clear(id)
       }
       return this.withCacheMany(super.saveMany(entities, options))
     }
 
     async update(entity: PartialEntityWithId<Entity>): Promise<Entity> {
-      const id = entity[property] as string | undefined
+      const id = (entity as any)[property] as string | undefined
       if (id) this.loader.clear(id)
       return this.withCache(super.update(entity))
     }
