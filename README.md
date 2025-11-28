@@ -21,6 +21,7 @@
   - [Query Builder](#query-builder)
     - [Query](#query)
     - [PaginatedQuery](#paginatedquery)
+    - [Terminal Query Pattern](#terminal-query-pattern)
   - [Insert \& Update](#insert--update)
     - [save](#save)
     - [saveMany](#savemany)
@@ -477,6 +478,75 @@ const query = new PaginatedQuery(repo)
   // or use this method
   .pagination({ next: 'token', limit: 10 })
 ```
+
+### Terminal Query Pattern
+
+To prevent "Unsupported FindOperator" runtime errors from TypeORM, the query builder enforces safe
+ordering using a **Terminal Query Pattern**. Certain methods (`whereIn` and `whereOr`) return a
+`TerminalQuery` that only exposes safe methods.
+
+#### Rules
+
+1. **`whereIn` must be last** - No other where methods can be chained after it.
+
+```ts
+// CORRECT
+q.whereEqualTo('status', 'active')
+ .whereIn('groupId', groupIds)
+
+// COMPILE ERROR
+q.whereIn('groupId', groupIds)
+ .whereEqualTo('status', 'active')  // TypeScript error!
+```
+
+2. **`whereOr` must be last** - Same restriction applies.
+
+```ts
+// CORRECT
+q.whereEqualTo('status', 'active')
+ .whereOr(
+   q1 => q1.whereEqualTo('role', 'admin'),
+   q2 => q2.whereEqualTo('role', 'mod')
+ )
+
+// COMPILE ERROR
+q.whereOr(...)
+ .whereEqualTo('status', 'active')  // TypeScript error!
+```
+
+3. **Never use `whereIn` inside `whereJoin`** - Throws runtime error.
+
+```ts
+// RUNTIME ERROR
+q.whereJoin('group', gq => gq.whereIn('id', groupIds))
+
+// CORRECT - use explicit foreign key
+q.whereIn('groupId', groupIds)
+```
+
+4. **Never use `whereIn` inside `whereOr`** - Throws runtime error.
+
+```ts
+// RUNTIME ERROR
+q.whereOr(q1 => q1.whereIn('status', ['a', 'b']), ...)
+
+// CORRECT - use multiple whereEqualTo
+q.whereOr(
+  q1 => q1.whereEqualTo('status', 'a'),
+  q2 => q2.whereEqualTo('status', 'b')
+)
+```
+
+#### Safe Methods After Terminal Operations
+
+After `whereIn()` or `whereOr()`, you can still chain:
+
+- `orderByAscending()` / `orderByDescending()`
+- `select()`, `fetchRelation()`, `loadRelationIds()`
+- `cache()`, `toQuery()`
+- For paginated: `limit()`, `next()`, `pagination()`
+
+See [docs/query-builder.md](docs/query-builder.md) for complete documentation.
 
 ## Insert & Update
 
