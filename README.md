@@ -18,8 +18,6 @@ A powerful, type-safe database abstraction layer built on TypeORM with first-cla
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
-- [Base Entity](#base-entity)
-- [ID Generation](#id-generation)
 - [Usage with NestJS](#usage-with-nestjs)
 - [Usage without NestJS](#usage-without-nestjs)
 - [Query Builder](#query-builder)
@@ -37,6 +35,8 @@ A powerful, type-safe database abstraction layer built on TypeORM with first-cla
   - [Incrementing Values](#incrementing-values)
   - [Deleting and Restoring](#deleting-and-restoring)
 - [Cloud Firestore](#cloud-firestore)
+- [Base Entity](#base-entity)
+- [ID Generation](#id-generation)
 - [Caching with DataLoader](#caching-with-dataloader)
 - [Testing](#testing)
 - [Advanced Usage](#advanced-usage)
@@ -115,78 +115,6 @@ const activeUsers = await userRepo.findAll(q =>
    .whereMoreThan('followers', 100)
    .orderByDescending('followers')
 )
-```
-
-## Base Entity
-
-Instead of manually defining common fields like `id`, `createdAt`, and `updatedAt` on every entity, extend `BaseEntity` to get them automatically. This ensures consistency across your data model and enables features like soft delete and optimistic locking out of the box.
-
-```typescript
-import { BaseEntity } from '@hgraph/storage'
-import { Entity, Column } from 'typeorm'
-
-@Entity()
-class User extends BaseEntity {
-  // Inherited fields:
-  // - id: string (primary key)
-  // - createdAt: Date (auto-set on insert)
-  // - updatedAt: Date (auto-set on update)
-  // - deletedAt: Date (for soft deletes)
-  // - version: number (optimistic locking)
-
-  @Column()
-  name!: string
-
-  @Column()
-  email!: string
-}
-```
-
-The `version` field enables optimistic locking - if two processes try to update the same record simultaneously, the second update will fail rather than silently overwriting changes.
-
-## ID Generation
-
-When you insert records without specifying an ID, the library automatically generates one using `generateId()`. You can also use these utilities directly for custom ID generation needs:
-
-```typescript
-import {
-  generateId,
-  generateNumericId,
-  generateIdOf,
-  createRandomIdGenerator
-} from '@hgraph/storage'
-
-// Generate 8-character alphanumeric ID (default for auto-generated IDs)
-const id = generateId() // e.g., "Ax7kM2pQ"
-
-// Generate numeric timestamp-based ID (useful for sortable IDs)
-const numericId = generateNumericId() // e.g., "7234561234567890"
-
-// Generate deterministic hash-based ID from input (same input = same output)
-// Useful for creating stable IDs from external identifiers
-const hashId = generateIdOf('user@example.com')
-
-// Create custom ID generator with specific length and character set
-const generate12CharId = createRandomIdGenerator(12, 'ABCDEF0123456789')
-const hexId = generate12CharId() // e.g., "A1B2C3D4E5F6"
-```
-
-### Custom ID Generator Decorator
-
-For entities that need specific ID formats (like order numbers or SKUs), use the `@IdGenerator` decorator. The function runs automatically when inserting new records:
-
-```typescript
-import { BaseEntity, IdGenerator } from '@hgraph/storage'
-import { Entity, Column } from 'typeorm'
-
-@Entity()
-@IdGenerator<Order>(order => {
-  order.id = `ORD-${Date.now()}`
-})
-class Order extends BaseEntity {
-  @Column()
-  total!: number
-}
 ```
 
 ## Usage with NestJS
@@ -657,6 +585,78 @@ Some TypeORM query methods are not supported in Firestore:
 | `fetchRelation` | Not supported |
 | Soft delete | Not supported |
 | `cache()` | No effect |
+
+## Base Entity
+
+Instead of manually defining common fields like `id`, `createdAt`, and `updatedAt` on every entity, extend `BaseEntity` to get them automatically. This ensures consistency across your data model and enables features like soft delete and optimistic locking out of the box.
+
+```typescript
+import { BaseEntity } from '@hgraph/storage'
+import { Entity, Column } from 'typeorm'
+
+@Entity()
+class User extends BaseEntity {
+  // Inherited fields:
+  // - id: string (primary key)
+  // - createdAt: Date (auto-set on insert)
+  // - updatedAt: Date (auto-set on update)
+  // - deletedAt: Date (for soft deletes)
+  // - version: number (optimistic locking)
+
+  @Column()
+  name!: string
+
+  @Column()
+  email!: string
+}
+```
+
+The `version` field enables optimistic locking - if two processes try to update the same record simultaneously, the second update will fail rather than silently overwriting changes.
+
+## ID Generation
+
+When you insert records without specifying an ID, the library automatically generates one using `generateId()`. You can also use these utilities directly for custom ID generation needs:
+
+```typescript
+import {
+  generateId,
+  generateNumericId,
+  generateIdOf,
+  createRandomIdGenerator
+} from '@hgraph/storage'
+
+// Generate 8-character alphanumeric ID (default for auto-generated IDs)
+const id = generateId() // e.g., "Ax7kM2pQ"
+
+// Generate numeric timestamp-based ID (useful for sortable IDs)
+const numericId = generateNumericId() // e.g., "7234561234567890"
+
+// Generate deterministic hash-based ID from input (same input = same output)
+// Useful for creating stable IDs from external identifiers
+const hashId = generateIdOf('user@example.com')
+
+// Create custom ID generator with specific length and character set
+const generate12CharId = createRandomIdGenerator(12, 'ABCDEF0123456789')
+const hexId = generate12CharId() // e.g., "A1B2C3D4E5F6"
+```
+
+### Custom ID Generator Decorator
+
+For entities that need specific ID formats (like order numbers or SKUs), use the `@IdGenerator` decorator. The function runs automatically when inserting new records:
+
+```typescript
+import { BaseEntity, IdGenerator } from '@hgraph/storage'
+import { Entity, Column } from 'typeorm'
+
+@Entity()
+@IdGenerator<Order>(order => {
+  order.id = `ORD-${Date.now()}`
+})
+class Order extends BaseEntity {
+  @Column()
+  total!: number
+}
+```
 
 ## Caching with DataLoader
 
