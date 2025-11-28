@@ -54,9 +54,49 @@ export function isTerminalQuery<T extends ObjectLiteral>(query: any): query is T
 }
 
 /**
- * Terminal query class - returned by whereIn() and whereOr().
- * Only exposes safe methods that can be chained after terminal operators.
- * This prevents unsafe patterns like chaining whereEqualTo() after whereIn().
+ * A terminal query that restricts further where clause chaining.
+ *
+ * This class is returned by `whereIn()` and `whereOr()` methods to enforce
+ * query chain ordering at compile time. TypeORM's `In()` operator can cause
+ * unexpected behavior when combined with subsequent where clauses, so this
+ * pattern ensures such combinations are caught during development.
+ *
+ * ## Why Terminal Queries Exist
+ *
+ * When using TypeORM's `In()` operator (via `whereIn()`), adding more where
+ * conditions after it can lead to incorrect SQL generation. The Terminal Query
+ * Pattern enforces that these operators must be last in your query chain.
+ *
+ * ## Available Methods
+ *
+ * After calling `whereIn()` or `whereOr()`, you can still use:
+ * - `orderByAscending()` / `orderByDescending()` - Sort results
+ * - `select()` - Choose specific columns
+ * - `fetchRelation()` - Eagerly load related entities
+ * - `loadRelationIds()` - Load only relation IDs
+ * - `cache()` - Enable query caching
+ *
+ * ## Restricted Methods
+ *
+ * The following methods are NOT available after terminal operations:
+ * - All `where*()` methods (e.g., `whereEqualTo()`, `whereMoreThan()`)
+ * - `whereJoin()`
+ *
+ * ## Migration Guide
+ *
+ * If you have existing code that chains where clauses after `whereIn()`,
+ * reorder your query to place `whereIn()` last:
+ *
+ * ```typescript
+ * // Before (will cause TypeScript error)
+ * q.whereIn('status', statuses).whereEqualTo('active', true)
+ *
+ * // After (correct)
+ * q.whereEqualTo('active', true).whereIn('status', statuses)
+ * ```
+ *
+ * @see {@link TerminalPaginatedQuery} for the paginated variant
+ * @see README.md#terminal-query-pattern for full documentation
  */
 export class TerminalQuery<Entity extends ObjectLiteral> {
   protected query: FindManyOptions<Entity> = {
@@ -121,8 +161,31 @@ export class TerminalQuery<Entity extends ObjectLiteral> {
 }
 
 /**
- * Terminal paginated query - returned by whereIn() and whereOr() on PaginatedQuery.
- * Extends TerminalQuery with pagination methods.
+ * A terminal paginated query that restricts further where clause chaining.
+ *
+ * This class extends {@link TerminalQuery} with pagination capabilities. It is
+ * returned by `whereIn()` and `whereOr()` methods when called on a
+ * {@link PaginatedQuery}.
+ *
+ * ## Additional Methods (beyond TerminalQuery)
+ *
+ * - `pagination()` - Set both limit and cursor token
+ * - `next()` - Set the cursor token for pagination
+ * - `limit()` - Set the page size
+ *
+ * ## Example
+ *
+ * ```typescript
+ * const { items, next } = await userRepo.find(q =>
+ *   q.whereEqualTo('active', true)
+ *    .whereIn('role', ['admin', 'moderator'])
+ *    .orderByDescending('createdAt')
+ *    .limit(25)
+ * )
+ * ```
+ *
+ * @see {@link TerminalQuery} for base terminal query documentation
+ * @see README.md#terminal-query-pattern for full documentation
  */
 export class TerminalPaginatedQuery<Entity extends ObjectLiteral> extends TerminalQuery<Entity> {
   static from<Entity extends ObjectLiteral>(
