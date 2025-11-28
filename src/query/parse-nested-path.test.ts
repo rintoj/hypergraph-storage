@@ -16,12 +16,7 @@ describe('parseNestedPath', () => {
   })
 
   it('should split a deeply nested path', () => {
-    expect(parseNestedPath('album.owner.profile.bio')).toEqual([
-      'album',
-      'owner',
-      'profile',
-      'bio',
-    ])
+    expect(parseNestedPath('album.owner.profile.bio')).toEqual(['album', 'owner', 'profile', 'bio'])
   })
 
   it('should handle a single segment path', () => {
@@ -128,10 +123,9 @@ describe('deepMerge', () => {
 
   it('should preserve FindOperator objects', () => {
     const operator = MoreThan(5)
-    const result = deepMerge(
-      { user: { name: 'John' } },
-      { user: { version: operator } },
-    ) as { user: { name: string; version: typeof operator } }
+    const result = deepMerge({ user: { name: 'John' } }, { user: { version: operator } }) as {
+      user: { name: string; version: typeof operator }
+    }
     expect(result).toEqual({
       user: {
         name: 'John',

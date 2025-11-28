@@ -24,9 +24,7 @@ type IsRelation<T> = T extends Primitive ? false : T extends object ? true : fal
  * // Result = 'author.id' | 'author.name'
  */
 export type NestedKeysOf<Entity, Type = any> = {
-  [Key in keyof AllRequired<Entity>]: IsRelation<
-    UnwrapArray<AllRequired<Entity>[Key]>
-  > extends true
+  [Key in keyof AllRequired<Entity>]: IsRelation<UnwrapArray<AllRequired<Entity>[Key]>> extends true
     ? `${Key & string}.${KeysOf<UnwrapArray<AllRequired<Entity>[Key]>, Type> & string}`
     : never
 }[keyof AllRequired<Entity>]
@@ -45,13 +43,9 @@ export type NestedKeysOf<Entity, Type = any> = {
  * // Result = 'author.profile.bio' | 'author.profile.age'
  */
 export type NestedKeysOf2<Entity, Type = any> = {
-  [Key in keyof AllRequired<Entity>]: IsRelation<
-    UnwrapArray<AllRequired<Entity>[Key]>
-  > extends true
+  [Key in keyof AllRequired<Entity>]: IsRelation<UnwrapArray<AllRequired<Entity>[Key]>> extends true
     ? {
-        [Key2 in keyof AllRequired<
-          UnwrapArray<AllRequired<Entity>[Key]>
-        >]: IsRelation<
+        [Key2 in keyof AllRequired<UnwrapArray<AllRequired<Entity>[Key]>>]: IsRelation<
           UnwrapArray<AllRequired<UnwrapArray<AllRequired<Entity>[Key]>>[Key2]>
         > extends true
           ? `${Key & string}.${Key2 & string}.${KeysOf<
@@ -92,8 +86,8 @@ export type TypeOfNested<Entity, Path extends string> = Path extends `${infer K}
       : TypeOfNested<UnwrapArray<AllRequired<Entity>[K]>, Rest>
     : never
   : Path extends keyof AllRequired<Entity>
-    ? AllRequired<Entity>[Path]
-    : never
+  ? AllRequired<Entity>[Path]
+  : never
 
 /**
  * Combined type for direct keys and nested keys (1 level)
@@ -133,13 +127,9 @@ export type RelationOf<Path extends string> = Path extends `${infer Relation}.${
  * Used for whereJoin-style operations on nested relations
  */
 export type NestedRelationKeysOf<Entity> = {
-  [Key in keyof AllRequired<Entity>]: IsRelation<
-    UnwrapArray<AllRequired<Entity>[Key]>
-  > extends true
+  [Key in keyof AllRequired<Entity>]: IsRelation<UnwrapArray<AllRequired<Entity>[Key]>> extends true
     ? {
-        [Key2 in keyof AllRequired<
-          UnwrapArray<AllRequired<Entity>[Key]>
-        >]: IsRelation<
+        [Key2 in keyof AllRequired<UnwrapArray<AllRequired<Entity>[Key]>>]: IsRelation<
           UnwrapArray<AllRequired<UnwrapArray<AllRequired<Entity>[Key]>>[Key2]>
         > extends true
           ? `${Key & string}.${Key2 & string}`
@@ -152,10 +142,13 @@ export type NestedRelationKeysOf<Entity> = {
  * Get the inferred type at a nested relation path
  * Returns the entity type (unwrapped from array if needed)
  */
-export type InferredNestedType<Entity, Path extends string> = Path extends `${infer K}.${infer Rest}`
+export type InferredNestedType<
+  Entity,
+  Path extends string,
+> = Path extends `${infer K}.${infer Rest}`
   ? K extends keyof AllRequired<Entity>
     ? InferredNestedType<InferredType<Entity, K>, Rest>
     : never
   : Path extends keyof AllRequired<Entity>
-    ? InferredType<Entity, Path>
-    : never
+  ? InferredType<Entity, Path>
+  : never

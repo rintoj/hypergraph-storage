@@ -87,7 +87,10 @@ export function buildRelationsObject(relationPath: string): Record<string, any> 
  * deepMerge({ a: { b: 1 } }, { a: { c: 2 } })
  * // { a: { b: 1, c: 2 } }
  */
-export function deepMerge<T extends Record<string, any>>(target: T, source: Record<string, any>): T {
+export function deepMerge<T extends Record<string, any>>(
+  target: T,
+  source: Record<string, any>,
+): T {
   const result = { ...target } as any
 
   for (const key in source) {

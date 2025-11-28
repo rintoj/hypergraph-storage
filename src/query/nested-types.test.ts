@@ -14,12 +14,7 @@
 import { PhotoEntity, UserEntity } from '../entity'
 import { Repository } from '../repository'
 import { Query, PaginatedQuery } from './query'
-import {
-  NestedKeysOf,
-  NestedKeysOf2,
-  TypeOfNested,
-  DirectOrNestedKeysOf,
-} from './nested-types'
+import { NestedKeysOf, NestedKeysOf2, TypeOfNested, DirectOrNestedKeysOf } from './nested-types'
 
 // ============================================================================
 // Test Repositories

@@ -533,10 +533,7 @@ describe('Query', () => {
 
     it('should work with PaginatedQuery', () => {
       const repo = new PhotoRepository()
-      const query = new PaginatedQuery(repo)
-        .whereEqualTo('user.id', 'user-1')
-        .limit(50)
-        .toQuery()
+      const query = new PaginatedQuery(repo).whereEqualTo('user.id', 'user-1').limit(50).toQuery()
       expect(query.relations).toEqual({ user: true })
       expect(query.where).toEqual({ user: { id: 'user-1' } })
       expect(query.take).toEqual(50)
