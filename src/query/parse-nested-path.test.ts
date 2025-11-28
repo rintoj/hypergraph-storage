@@ -128,7 +128,10 @@ describe('deepMerge', () => {
 
   it('should preserve FindOperator objects', () => {
     const operator = MoreThan(5)
-    const result = deepMerge({ user: { name: 'John' } }, { user: { version: operator } })
+    const result = deepMerge(
+      { user: { name: 'John' } },
+      { user: { version: operator } },
+    ) as { user: { name: string; version: typeof operator } }
     expect(result).toEqual({
       user: {
         name: 'John',
